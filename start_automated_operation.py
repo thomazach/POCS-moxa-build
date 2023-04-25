@@ -1,0 +1,1 @@
+### File for putting the unit into an automated observation state that is designed to be left unattend for long periods of time
