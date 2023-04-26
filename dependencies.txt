@@ -1,0 +1,4 @@
+File for documenting python libraries and other dependent software.
+Python libs:
+astropy
+serial
