@@ -8,7 +8,7 @@ useful for setting up path configuration files on first setup.
 """
 ### Old code, could be updated for readability
 
-BASEDIR = 'cd /sys/devices/pci0000:00'
+BASEDIR = 'cd /sys/bus/pci/devices/0000:01:00.0'
 DataStorageMatrix = []
 TemporaryDataStorageList = []
 

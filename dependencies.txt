@@ -1,7 +1,8 @@
-File for documenting python libraries and other dependent software.
+File for documenting python libraries and other dependent software. (update periodically, ask for conda env if installing during development)
 Python libs:
 astropy
 serial
 
 Other dependencies:
 arudiuno-cli
+gphoto2
