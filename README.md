@@ -13,6 +13,6 @@ A more in depth outline of the initial plan can be found below:
 
 Many of the things this repository seeks to do have already been done at [panoptes/POCS](github.com/panoptes/POCS), and the code will likely rely on a lot of ideas from that repo. Like [POCS](https://github.com/panoptes/POCS), this repository will be written mainly in python. For interested developers, please review [astropy](https://www.astropy.org/), mount [control command language](http://www.ioptron.com/v/ASCOM/RS-232_Command_Language2014V310.pdf), the [gphoto2 library](http://www.gphoto.org/) which will be used to control two Cannon EOS [2000D](https://www.canon-europe.com/support/consumer_products/products/cameras/digital_slr/eos-2000d.html?type=drivers&language=en&os=windows%2010%20(64-bit))/[Rebel T7](https://www.usa.canon.com/support/p/eos-rebel-t7), the main [weather sensor](https://shop.lunaticoastro.com/?product=aag-cloudwatcher-cloud-detector), its [software](https://indilib.org/devices/weather-stations/aag-cloud-watcher.html) and our [moxa control computer](https://www.moxa.com/en/products/industrial-computing/arm-based-computers/uc-8100a-me-t-series). 
 
-Please reach out before starting/contributing to development.
+Please reach out before starting/contributing to development.  
 Email: thomazac@oregonstate.edu  
-Panoptes Forum: @"Zach"#p174
+Panoptes Forum: @"Zach"#p174  
