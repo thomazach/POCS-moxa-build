@@ -1,4 +1,4 @@
-# POCS-moxa-build
+# POCS: Moxa Build
 PANOTPES Observatory Control Software for remotely operating a telescope via an ssh connection on a moxa UC-8100A-ME-T series arm processor running moxa industrial linux. This repository is designed to be a refactor and upgrade to [POCS](https://github.com/panoptes/POCS). Main changes include a move away from server/docker based communication to read/write lock threading, explicit seperation of "non-core" threads
 for future compatibility, removal of virtual environments (conda) from production builds, and thorough documentation to support both users and developers.  
 
