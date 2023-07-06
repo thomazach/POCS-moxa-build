@@ -21,10 +21,13 @@ def main():
         weather_results = weather_results_file_object.readline()
         if weather_results == 'true\n':
             print('Safe to use')
-            # use weather sensor to get night and day
+
+            # when it is safe to go we need to send 
             break
         else:
             print('not safe')
+
+            # Things aren't safe so the mount needs to be told to cry
             break
 
 
