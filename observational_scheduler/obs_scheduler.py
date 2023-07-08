@@ -25,8 +25,7 @@ class target:
     def __str__(self):
         return 'priority='+str(0 - self.priority)+', name='+self.name+', position='+self.position
 
-
-def main():
+def getTargetQueue(PATH):
     pQueue = []
     heapq.heapify(pQueue)
     data = 0
@@ -38,16 +37,4 @@ def main():
         position = entry['field']['position']
 
         heapq.heappush(pQueue, target(name, position, prio))
-
-    while pQueue != []:
-        tmp = heapq.heappop(pQueue)
-        print(tmp)
-
-
-
-
-
-
-
-if __name__ == "__main__":
-    main()
+    return pQueue
