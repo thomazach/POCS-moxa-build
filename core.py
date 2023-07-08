@@ -12,8 +12,13 @@ def writeToFile(PATH, msg):
     fileWrite.write(msg)
     fileWrite.close()
 
+def readWeatherResults(PATH):
+    weather_results_file_object = open(PATH, 'r')
+    weather_results = weather_results_file_object.readline()
+    weather_results_file_object.close()
+    return weather_results
+
 def main():
-    # this is main
 
     # how to get targets out of the obs scheduler queue
     # test = obs_scheduler.getTargetQueue(TARGETS_FILE_PATH)
@@ -21,15 +26,15 @@ def main():
     #     print(heapq.heappop(test))
 
     while True: 
-        weather_results_file_object = open(WEATHER_RESULTS_TXT, 'r')
-
-        weather_results_file_object.write('go') # tell weather do the thing
-        time.sleep(1)
-        weather_results = weather_results_file_object.readline()
-        if weather_results == 'true\n':
+        writeToFile(WEATHER_RESULTS_TXT, 'go')
+        time.sleep(3)
+        weather_results = readWeatherResults(WEATHER_RESULTS_TXT)
+        print(weather_results)
+        if weather_results == 'true':
             print('Safe to use')
 
             # when it is safe to go we need to send 
+            writeToFile(WEATHER_RESULTS_TXT, 'exit')
             break
         else:
             print('not safe')
