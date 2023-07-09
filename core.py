@@ -24,13 +24,13 @@ def main():
     # test = obs_scheduler.getTargetQueue(TARGETS_FILE_PATH)
     # while test != []:
     #     print(heapq.heappop(test))
-
+    writeToFile(WEATHER_RESULTS_TXT, 'go')
     while True: 
-        writeToFile(WEATHER_RESULTS_TXT, 'go')
+        
         time.sleep(3)
-        weather_results = readWeatherResults(WEATHER_RESULTS_TXT)
-        print(weather_results)
-        if weather_results == 'true':
+        weatherResults = readWeatherResults(WEATHER_RESULTS_TXT)
+        print(weatherResults)
+        if weatherResults == 'true':
             print('Safe to use')
 
             # when it is safe to go we need to send 
@@ -40,7 +40,7 @@ def main():
             print('not safe')
 
             # Things aren't safe so the mount needs to be told to cry
-            break
+            # break
 
 
 
