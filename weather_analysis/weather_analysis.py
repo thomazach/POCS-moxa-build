@@ -57,6 +57,7 @@ def getEventsQueue():
         windSpeed = entry['windSpeed']
         priority = entry['priority']
         heapq.heappush(pQueue, weatherEvent(temperatrue, moisture, windSpeed, priority))
+    file.close()
     return pQueue
 
 class myThread(threading.Thread):
