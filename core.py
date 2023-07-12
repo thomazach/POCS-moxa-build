@@ -2,15 +2,16 @@ import sys
 import threading
 import heapq
 import time
+import random
 from observational_scheduler import obs_scheduler
 
 WEATHER_RESULTS_TXT = 'weather_results.txt'
 TARGETS_FILE_PATH = 'observational_scheduler/mockData.yaml'
-
+random.seed(time.time_ns)
 def writeToFile(PATH, msg):
-    fileWrite = open(PATH, "w")
-    fileWrite.write(msg)
-    fileWrite.close()
+    file_write = open(PATH, "w")
+    file_write.write(msg)
+    file_write.close()
 
 def readWeatherResults(PATH):
     weather_results_file_object = open(PATH, 'r')
@@ -18,20 +19,33 @@ def readWeatherResults(PATH):
     weather_results_file_object.close()
     return weather_results
 
-def main():
+def checkTargetAvailability(target):
+    value = random.randint(0, 10)
+    return value < 5
 
-    # how to get targets out of the obs scheduler queue
-    # test = obs_scheduler.getTargetQueue(TARGETS_FILE_PATH)
-    # while test != []:
-    #     print(heapq.heappop(test))
+def main():
     writeToFile(WEATHER_RESULTS_TXT, 'go')
     while True: 
         
         time.sleep(3)
-        weatherResults = readWeatherResults(WEATHER_RESULTS_TXT)
-        print(weatherResults)
-        if weatherResults == 'true':
+        weather_results = readWeatherResults(WEATHER_RESULTS_TXT)
+        print(weather_results)
+        if weather_results == 'true':
             print('Safe to use')
+            target_queue = obs_scheduler.getTargetQueue(TARGETS_FILE_PATH)
+            while target_queue != []:
+                # target = heapq.heappop(target_queue)
+                if not checkTargetAvailability(target_queue[0].position):
+                    continue
+                target = heapq.heappop(target_queue)
+                # tell mount controller target
+                # wait for mount to say complete
+                # get data from camera
+                # ask storage if full 
+                #   if full handle or notify somehow
+                #   else upload or store picture in storage method
+                # remove target from queue
+
 
             # when it is safe to go we need to send 
             writeToFile(WEATHER_RESULTS_TXT, 'exit')
