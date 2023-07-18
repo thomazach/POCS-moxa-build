@@ -44,7 +44,7 @@ def get_camera_paths():
 
     return primary_camera_path, secondary_camera_path
 
-def take_observation(cam_type, camera_path, num_captures, exposure_time, observation_dir):
+def take_observation(cam_type, camera_path, num_captures, exposure_time, observation_dir, iso=1):
     if num_captures <= 0:
         raise Exception("Bad observation data: num_captures must be positive")
 
@@ -52,13 +52,18 @@ def take_observation(cam_type, camera_path, num_captures, exposure_time, observa
         if num_captures == 0:
             break
 
-        #os.sys(f"gphoto2 --port {camera_path} -B {string(exposure_time)} --filename /home/uname/moxa-pocs/images/{observation_dir}/{cam_type}/astro_image_{num_captures}.cr2")
+        # UNCOMMENT IN PRODUCTION
+        #os.sys(f"gphoto2 --port {camera_path} --set-config iso={iso} --filename /home/uname/moxa-pocs/images/{observation_dir}/{cam_type}/astro_image_{num_captures}.cr2 --set-config-index shutterpseed=0 --wait-event=1s --set-config-index eosremoterelease=2 --wait-event={exposure_time}s --set-config-index eosremoterelease=4 --wait-event-and-download=2s")
         
         time.sleep(exposure_time) # May or may not be necessary, don't have tesing setup yet
 
         # TEST PRINT SINCE ON WINDOWS
-        print(f"gphoto2 --port {camera_path} -B {exposure_time} --filename /home/uname/moxa-pocs/images/{observation_dir}/{cam_type}/astro_image_{num_captures}.cr2")
+        print(f"gphoto2 --port {camera_path} --set-config iso={iso} --filename /home/uname/moxa-pocs/images/{observation_dir}/{cam_type}/astro_image_{num_captures}.cr2 --set-config-index shutterpseed=0 --wait-event=1s --set-config-index eosremoterelease=2 --wait-event={exposure_time}s --set-config-index eosremoterelease=4 --wait-event-and-download=2s")
 
+        # UNCOMMENT IN PRODUCTION
+        # Clear the camera's RAM in a hacky way to allow for back to back large exposures (tested on 120s)
+        #os.sys(f"gphoto2 --port {camera_path} --set-config imageformat=0")
+        #os.sys(f"gphoto2 --port {camera_path} --set-config imageformat=9")
         num_captures -= 1
 
 def initialize_observation(cam_observation_dict):
