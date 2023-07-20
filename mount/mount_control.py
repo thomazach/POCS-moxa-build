@@ -13,10 +13,11 @@ First attempt at mount control. This section(directory: moxa-pocs/mount) needs t
     -unpark the mount if necessary
     -move to the target
     -start tracking it
-2. go to the safe position and park
+2. Call camera_control with the proper information.
+3. go to the safe position and park
     -point the cameras at the ground 
     -park the mount
-3. handle mount drift corrections (yikes, putting that on the backburner. might not be necessariy with wide FOV cameras)
+4. handle mount drift corrections (yikes, putting that on the backburner. might not be necessariy with wide FOV cameras)
 
 
 Commands are sent using iOptron Mount RS-232 Command Langauge. The jist is that you send a string of the form ':<command characters>#', 
@@ -206,7 +207,12 @@ if START_COORDINATES != None: # Caveman intelect data check, improve later
             mount_port.write(b':MP1#')
         elif input == 'close_comms':
             mount_port.close()
+        elif input == 'listen':
+            # Set the listen command to None in whatever communication method we choose
+            continue
         else:
             # Park the mount if communication with core/obs scheduler is lost
+            # When setting up communication between mount_controller and core/obs scheduler there needs to be a heart beat, 
+            # so that 
             print("Parking the mount!")
             mount_port.write(b':MP1#')
