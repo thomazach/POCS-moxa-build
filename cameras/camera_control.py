@@ -4,7 +4,6 @@ import subprocess
 import pickle
 import multiprocessing
 import datetime
-import time
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from observational_scheduler.obs_scheduler import target
@@ -18,7 +17,7 @@ def requestCameraCommand():
 def sendTargetObjectCommand(current_target_object, cmd):
     relative_path = os.path.dirname(os.path.dirname(__file__))
     current_target_object.cmd = cmd
-    with open(f"{relative_path}/pickle/current_target.pickle", "wb") as f:
+    with open(f"{relative_path}\pickle\current_target.pickle", "wb") as f:
         pickle.dump(current_target_object, f)
 
 def get_camera_paths_dummy():
@@ -27,27 +26,25 @@ def get_camera_paths_dummy():
 def get_camera_paths():
     print("Finding cameras using gphoto2...")
     out = subprocess.run(["gphoto2", "--auto-detect"], stdout=subprocess.PIPE)
-    cameraPaths = out.stdout.decode('utf-8')
+    out = out.stdout.decode('utf-8')
+    out = out.translate({ord(c): None for c in string.whitespace})
+    out = out.split("CanonEOS100D", -1)
 
-    for charsToRemove in ['Model', 'Port', '-', '\n', ' ']:
-        cameraPaths = cameraPaths.replace(charsToRemove, '')
-
-    cameraPaths = list(filter(None, cameraPaths.split("CanonEOS100D")))
-
-    primary_camera_path, secondary_camera_path = cameraPaths
+    primary_camera_path = out[1]
+    secondary_camera_path = out[2]
 
     return primary_camera_path, secondary_camera_path
 
-def take_observation(cameraSettings, iso=1):
-    cam_type, camera_path, num_captures, exposure_time, observation_dir, directoryPath = cameraSettings
-
+def take_observation(cam_type, camera_path, num_captures, exposure_time, observation_dir, iso=1):
     if num_captures <= 0:
-        raise Exception("Bad observation data: num_captures must be a positive non-zero integer")
-    i = num_captures
+        raise Exception("Bad observation data: num_captures must be positive")
+
     while True:
-        # UNCOMMENT ALL subprocess.run LINES IN PRODUCTION
         if num_captures == 0:
             break
+
+        # UNCOMMENT IN PRODUCTION
+        #os.sys(f"gphoto2 --port {camera_path} --set-config iso={iso} --filename /home/uname/moxa-pocs/images/{observation_dir}/{cam_type}/astro_image_{num_captures}.cr2 --set-config-index shutterpseed=0 --wait-event=1s --set-config-index eosremoterelease=2 --wait-event={exposure_time}s --set-config-index eosremoterelease=4 --wait-event-and-download=2s")
         
         # Clear the camera's RAM to allow for back to back large exposures (tested on 120s)
         cmdClearRAM = f"gphoto2 --port {camera_path} --set-config imageformat=0".split(' ')
