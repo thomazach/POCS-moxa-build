@@ -29,15 +29,8 @@ def get_mount_port():
     return '/dev/ttyUSB0'
 
 def connect_to_mount():
-    '''
-    Make sure mount is working and get important starting information:
-    
-    1. Use ':MountInfo#' to confirm serial communication 
-    2. Get and return current RA and DEC coordinates
-    3. Check the tracking rate is set to 256x sidereal and change it if it is wrong
-    '''
 
-    # Open serial communication
+    # Open serial communication with the mount
     with serial.Serial(get_mount_port(), 9600, timeout=1) as mountSerialPort:
         
         # Verify that the mount is communicating as expected
