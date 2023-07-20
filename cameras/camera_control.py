@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import os
 import sys
 import subprocess
@@ -16,22 +17,38 @@ import multiprocessing
 >>>>>>> b4028cf (Implement multiprocessing to handle termination of camera processes in emergency park cases)
 >>>>>>> 3232591 (Implement multiprocessing to handle termination of camera processes in emergency park cases)
 import datetime
+=======
+import threading
+>>>>>>> 3be8710 (Better string parse, Relative Image Path, *args into function)
 import time
+import string
+import subprocess
+import os
+import datetime
 
-sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-from observational_scheduler.obs_scheduler import target
 
-def requestCameraCommand():
-    relative_path = os.path.dirname(os.path.dirname(__file__))
-    with open(f"{relative_path}\pickle\current_target.pickle", "rb") as f:
-        current_target = pickle.load(f)
-    return current_target
+def give_dummy_command_data():
+    '''
+    Recieves the following from pocs.observational_scheduler:
+    -number of images to take in this observation
+    -exposure time of each image
+    -what combination of cameras to take images with
 
-def sendTargetObjectCommand(current_target_object, cmd):
-    relative_path = os.path.dirname(os.path.dirname(__file__))
-    current_target_object.cmd = cmd
-    with open(f"{relative_path}\pickle\current_target.pickle", "wb") as f:
-        pickle.dump(current_target_object, f)
+    Example .yaml:
+
+    observation:
+        priority: 100
+        primary_cam: 
+            take_images: True
+            num_captures: 10
+            exposure_time: 120
+
+        secondary_cam:
+            take_images: True
+            num_captures: 40
+            exposure_time: 30
+    '''
+    return dict({'primary_cam': {'take_images': True, 'num_captures': 10, 'exposure_time': 12}, 'secondary_cam': {'take_images': True, 'num_captures': 40, 'exposure_time': 3}})
 
 def get_camera_paths_dummy():
     return "usb:001,007", "usb:001,008"
@@ -61,6 +78,7 @@ def take_observation(cam_type, camera_path, num_captures, exposure_time, observa
         
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
         # Clear the camera's RAM to allow for back to back large exposures (tested on 120s)
         cmdClearRAM = f"gphoto2 --port {camera_path} --set-config imageformat=0".split(' ')
         #subprocess.run(cmdClearRAM)
@@ -73,6 +91,8 @@ def take_observation(cam_type, camera_path, num_captures, exposure_time, observa
 =======
 >>>>>>> 3232591 (Implement multiprocessing to handle termination of camera processes in emergency park cases)
 <<<<<<< HEAD
+=======
+>>>>>>> 3be8710 (Better string parse, Relative Image Path, *args into function)
         time.sleep(exposure_time) # May or may not be necessary, don't have tesing setup yet
 >>>>>>> 588729e (Implement multiprocessing to handle termination of camera processes in emergency park cases)
 
@@ -85,6 +105,7 @@ def take_observation(cam_type, camera_path, num_captures, exposure_time, observa
         # Clear the camera's RAM in a hacky way to allow for back to back large exposures (tested on 120s)
         #os.sys(f"gphoto2 --port {camera_path} --set-config imageformat=0")
         #os.sys(f"gphoto2 --port {camera_path} --set-config imageformat=9")
+<<<<<<< HEAD
 =======
 =======
 >>>>>>> b4028cf (Implement multiprocessing to handle termination of camera processes in emergency park cases)
@@ -120,11 +141,17 @@ def initialize_observation(current_target_object):
     # UNCOMMENT ALL subprocess.run LINES IN PRODUCTION
 >>>>>>> f1c2cb2 (Read/write from current_target.pickle and execute observation(print statements for testing))
 >>>>>>> 10138a2 (Read/write from current_target.pickle and execute observation(print statements for testing))
+=======
+        num_captures -= 1
+
+def initialize_observation(cam_observation_dict):
+>>>>>>> 3be8710 (Better string parse, Relative Image Path, *args into function)
 
     format = "%Y-%m-%dT%H:%M:%S"
     timezone = datetime.timezone.utc
     time_and_date = datetime.datetime.now(tz=timezone).strftime(format)
 
+<<<<<<< HEAD
 <<<<<<< HEAD
     directoryPath=os.path.dirname(os.path.abspath(__file__)).replace('cameras', 'images')
     cmdMakeObservationDirectory = f"cd {directoryPath}; mkdir {time_and_date}; cd {time_and_date}; mkdir 'Primary_Cam'; mkdir 'Secondary_Cam'".split(' ')
@@ -138,11 +165,15 @@ def initialize_observation(current_target_object):
     #subprocess.run(cmdMakeObservationDirectory)
 >>>>>>> f1c2cb2 (Read/write from current_target.pickle and execute observation(print statements for testing))
 >>>>>>> 10138a2 (Read/write from current_target.pickle and execute observation(print statements for testing))
+=======
+    #os.sys(f'cd /home/uname/moxa-pocs/images; mkdir {time_and_date}' )
+>>>>>>> 3be8710 (Better string parse, Relative Image Path, *args into function)
 
     primary_camera_path, secondary_camera_path = get_camera_paths_dummy() # Replace with get_camera_paths in production
     primary_camera = ('Primary_Cam', primary_camera_path)
     secondary_camera = ('Secondary_Cam', secondary_camera_path)
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
     cameraSettingsPrimary = [primary_camera[0], primary_camera[1], current_target_object.camera_settings['primary_cam']['num_captures'], current_target_object.camera_settings['primary_cam']['exposure_time'], time_and_date, directoryPath]
@@ -182,19 +213,17 @@ def main():
 =======
 >>>>>>> 30564d2 (Read/write from current_target.pickle and execute observation(print statements for testing))
 <<<<<<< HEAD
+=======
+>>>>>>> 3be8710 (Better string parse, Relative Image Path, *args into function)
     if cam_observation_dict['primary_cam']['take_images']:
         threading.Thread(target=take_observation, args=(primary_camera[0], primary_camera[1], cam_observation_dict['primary_cam']['num_captures'], cam_observation_dict['primary_cam']['exposure_time'], time_and_date)).start()
 
     if cam_observation_dict['secondary_cam']['take_images']:
         take_observation(secondary_camera[0], secondary_camera[1], cam_observation_dict['secondary_cam']['num_captures'], cam_observation_dict['secondary_cam']['exposure_time'], time_and_date)
-=======
-    cameraSettingsPrimary = [primary_camera[0], primary_camera[1], current_target_object.camera_settings['primary_cam']['num_captures'], current_target_object.camera_settings['primary_cam']['exposure_time'], time_and_date, directoryPath]
-    cameraSettingsSecondary = [secondary_camera[0], secondary_camera[1], current_target_object.camera_settings['secondary_cam']['num_captures'], current_target_object.camera_settings['secondary_cam']['exposure_time'], time_and_date, directoryPath]
 
-    if current_target_object.camera_settings['primary_cam']['take_images']:
-        primary_cam_process = multiprocessing.Process(target=take_observation, args=([cameraSettingsPrimary]))
-        primary_cam_process.start()
+config = give_dummy_command_data()
 
+<<<<<<< HEAD
     if current_target_object.camera_settings['secondary_cam']['take_images']:
 <<<<<<< HEAD
         take_observation(cameraSettingsSecondary)
@@ -303,4 +332,11 @@ def main():
 >>>>>>> 3232591 (Implement multiprocessing to handle termination of camera processes in emergency park cases)
 
 if __name__ == '__main__':
+<<<<<<< HEAD
     main()
+=======
+    main()
+=======
+initialize_observation(config)
+>>>>>>> 3be8710 (Better string parse, Relative Image Path, *args into function)
+>>>>>>> 25a0d5c (Better string parse, Relative Image Path, *args into function)
