@@ -1,5 +1,6 @@
 import time
 import serial
+import yaml
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
@@ -72,16 +73,16 @@ def create_movement_commands(current_position, desired_position):
 
     # Give each axis the right command based on the difference in axis degrees
     if dec_diff < 0:
-        dec_cmd = ':mn#'
+        dec_cmd = b':mn#'
     elif dec_diff > 0:
-        dec_cmd = ':ms#'
+        dec_cmd = b':ms#'
     else:
         dec_cmd = ''
 
     if ra_diff < 0:
-        ra_cmd = ':me#'
+        ra_cmd = b':me#'
     elif ra_diff > 0:
-        ra_cmd = ':mw#'
+        ra_cmd = b':mw#'
     else:
         ra_cmd = ''
 
@@ -117,25 +118,32 @@ def execute_movement_commands(mount_serial_port, RA_tuple, DEC_tuple):
     dec_cmd, dec_time = DEC_tuple
 
     dec_start_time = time.time()
-    print(f"Sent serial command: {dec_cmd} Execution time: {dec_time}")
-    while (dec_start_time + dec_time + 5) > time.time():
+    with mount_serial_port:
+        print(f"Sending serial command: {dec_cmd} with desired execution time of {dec_time} seconds")
+        mount_serial_port.write(dec_cmd)
+        while (dec_start_time + dec_time + 5) > time.time():
 
-        if dec_start_time + dec_time <= time.time():
-            print(f"Sent serial command ':qD#' to stop DEC mount movement at {time.time()}")
-            print(f"Actual execution time is {time.time() - dec_start_time}")
-            break
+            if dec_start_time + dec_time <= time.time():
+                print(f"Sending serial command ':qD#' to stop DEC mount movement at {time.time()}")
+                mount_serial_port.write(b':qD#')
+                print(f"Actual execution time is {time.time() - dec_start_time}")
+                break
 
-    ra_start_time = time.time()
-    print(f"Sent serial command: {ra_cmd} Execution time: {ra_time}")
-    while (ra_start_time + ra_time + 5) > time.time():
-        
-        if ra_start_time + ra_time <= time.time():
-            print(f"Sent serial command ':qR#' to stop RA mount movement at {time.time()}")
-            print(f"Actual execution time is {time.time() - ra_start_time}")
-            break
+        ra_start_time = time.time()
+        print(f"Sending serial command: {ra_cmd} with desired execution time of {ra_time} seconds")
+        mount_serial_port.write(ra_cmd)
+        while (ra_start_time + ra_time + 5) > time.time():
+            
+            if ra_start_time + ra_time <= time.time():
+                print(f"Sent serial command ':qR#' to stop RA mount movement at {time.time()}")
+                mount_serial_port.write(b':qR#')
+                print(f"Actual execution time is {time.time() - ra_start_time}")
+                break
 
-    print(f"Sent serial command: ':ST1#' to start tracking SkyCoord: {get_mount_command()}")
+        print(f"Sending serial command: ':ST1#' to start tracking SkyCoord: {get_mount_command()}")
+        mount_serial_port.write(b':ST1#')
 
+    # Ready to take pictures. Call camera_control.py and send camera data if necessary.
 
 def connect_to_mount():
     '''
