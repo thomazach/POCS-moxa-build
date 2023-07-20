@@ -135,16 +135,47 @@ def execute_movement_commands(mount_serial_port, RA_tuple, DEC_tuple):
             break
 
     print(f"Sent serial command: ':ST1#' to start tracking SkyCoord: {get_mount_command()}")
-### Open serial communication on the mounts serial port
-mount_abstract_serial_port = serial.Serial(get_mount_port(), 9600) # Maybe get 9600 from a config file? doubt they use different serail for same cmd langague
-### Make sure mount is working and get important starting information
-mount_abstract_serial_port.write(b':GEP#') #':GEP#' gets right acension and declination, can use this to confirm the mount is communicating properly
-mount_abstract_serial_port.timeout = 10 # Set timeout of serial object to 10 seconds before waiting for the response
-mount_response = mount_abstract_serial_port.read(21) # Read 21 bytes since the expected reponse is formatted as: “sTTTTTTTTTTTTTTTTTnn#”
-mount_abstract_serial_port.write(b':<get RA DEC movement rates>#') #':GTR#' ?? maybe google telescope stuff
-slew_rate_RA_DEC_tuple = mount_abstract_serial_port.read(-1) # Don't know int value
 
-if mount_response != None: # Caveman intelect data check, improve later
+
+def connect_to_mount():
+    '''
+    Make sure mount is working and get important starting information:
+    
+    1. Use ':MountInfo#' to confirm serial communication 
+    2. Get and return current RA and DEC coordinates
+    3. Check the tracking rate is set to 256x sidereal and change it if it is wrong
+    '''
+
+    # Open serial communication
+    with serial.Serial(get_mount_port(), 9600, timeout=1) as mountSerialPort:
+        
+        # Verify that the mount is communicating as expected
+        mountSerialPort.write(b':MountInfo#')
+        modelNumber = mountSerialPort.read(4)
+        if modelNumber != b'0030':
+            raise Exception("Incorrect model number: Bad serial communication. Required mount for this software is the iEQ30Pro from iOptron.")
+        
+        # Get the current RA and DEC coordinates
+        mountSerialPort.write(b':GEC#')
+        currentCoordinates = mountSerialPort.read(21) # Expected reponse format is: “sTTTTTTTTXXXXXXXX#”
+        # Split this into an (RA, DEC) tuple and decode the DEC XXXXX part which doesn't have a sign. Test on hardware first.
+
+        # Check that the slewing rate is its slowest value for max accuracy, and set it if it isn't
+        mountSerialPort.write(b':GSR#')
+        slewingSpeed = mountSerialPort.read(2)
+        if slewingSpeed != b'7#':
+            print("Incorrect slewing rate, attempting to set it to 256x sidereal")
+            mountSerialPort.write(b':MSR7#')
+            if mountSerialPort.read(1) == b'1':
+                print("Succesfully updated slewing rate.")
+            else:
+                raise Exception("Problem setting sidereal tracking rate to 256x sidereal")
+        
+        return mountSerialPort, currentCoordinates
+
+mount_port, START_COORDINATES = connect_to_mount()
+
+if START_COORDINATES != None: # Caveman intelect data check, improve later
 
     ### Start main mount loop that listens for incoming command from moxa-pocs/core and executes as necessary
     while True:
@@ -152,19 +183,22 @@ if mount_response != None: # Caveman intelect data check, improve later
         input = get_mount_command()
 
         ### Check that input is the right data type, DO NOT UNPARK OR MOVE IF NOT
-        if isinstance(input, SkyCoord): # Refine late
+        if isinstance(input, SkyCoord): # Refine later
 
             ########### Make this entire section into a callable function #####################
 
-            mount_abstract_serial_port.write(b':MP0#') # Unpark mount, dont need to check if its already unparked, as command has no effect if already unparked
+            mount_port.write(b':MP0#') # Unpark mount, dont need to check if its already unparked, as command has no effect if already unparked
 
-            RA_tuple, DEC_tuple = create_movement_commands(mount_response, get_mount_command(dtype='SkyCoord'))
+            RA_tuple, DEC_tuple = create_movement_commands(START_COORDINATES, get_mount_command(dtype='SkyCoord'))
 
-            execute_movement_commands('dev/TEStty0', RA_tuple, DEC_tuple)
+            execute_movement_commands(mount_port, RA_tuple, DEC_tuple)
         elif input == 'go_safe':
-
-            #! Still need to call function used above ^ with RA DEC coordinates that face the ground
-
-            mount_abstract_serial_port.write(b':MP1') # Parks the mount
+            # Park the mount
+            print("Parking the mount!")
+            mount_port.write(b':MP1#')
         elif input == 'close_comms':
-            mount_abstract_serial_port.close()
+            mount_port.close()
+        else:
+            # Park the mount if communication with core/obs scheduler is lost
+            print("Parking the mount!")
+            mount_port.write(b':MP1#')
