@@ -24,6 +24,50 @@ Commands are sent using iOptron Mount RS-232 Command Langauge. The jist is that 
 and then the mount will respond over serial with a formatted response, which depends on the command that was sent. This will be done using pySerial.
 
 '''
+### Testing function, should use auto detection in the future 
+def get_mount_port():
+    return '/dev/ttyUSB0'
+
+def connect_to_mount():
+    '''
+    Make sure mount is working and get important starting information:
+    
+    1. Use ':MountInfo#' to confirm serial communication 
+    2. Get and return current RA and DEC coordinates
+    3. Check the tracking rate is set to 256x sidereal and change it if it is wrong
+    '''
+
+    # Open serial communication
+    with serial.Serial(get_mount_port(), 9600, timeout=1) as mountSerialPort:
+        
+        # Verify that the mount is communicating as expected
+        mountSerialPort.write(b':MountInfo#')
+        modelNumber = mountSerialPort.read(4)
+        if modelNumber != b'0030':
+            raise Exception("Incorrect model number: Bad serial communication. Required mount for this software is the iEQ30Pro from iOptron.")
+        
+        ### NEED TO TEST THIS COMMAND ITS UNCLEAR WHICH SETTING EFFECTS THE SLEWING SPEED ###
+        # Set the mount to slew at 256x sidereal using "N S E W buttons"
+        mountSerialPort.write(b':SR7#') 
+        
+        # Get the current RA and DEC coordinates
+        mountSerialPort.write(b':GEC#')
+        currentCoordinates = mountSerialPort.read(21) # Expected reponse format is: “sTTTTTTTTXXXXXXXX#”
+        # Need to split this into an (RA, DEC) tuple and decode the DEC XXXXX part which doesn't have a sign. Test on hardware first.
+
+        # Check that the slewing rate is its slowest value for max accuracy, and set it if it isn't
+        mountSerialPort.write(b':GSR#')
+        slewingSpeed = mountSerialPort.read(2)
+        if slewingSpeed != b'7#':
+            print("Incorrect slewing rate, attempting to set it to 256x sidereal")
+            mountSerialPort.write(b':MSR7#')
+            if mountSerialPort.read(1) == b'1':
+                print("Succesfully updated slewing rate.")
+            else:
+                raise Exception("Problem setting sidereal tracking rate to 256x sidereal")
+        
+        return mountSerialPort, currentCoordinates
+    
 
 ### Recieve a command from moxa-pocs/core, since this is being written before moxa-pocs/core, i will be using a dummy function that manually feeds input
 def get_mount_command(dtype='SkyCoord'):
@@ -34,10 +78,6 @@ def get_mount_command(dtype='SkyCoord'):
         return 'close_comms'
     else:
         return 'go_safe'
-    
-### Testing function, should use 
-def get_mount_port():
-    return '/dev/ttyUSB0'
 
 def create_movement_commands(current_position, desired_position):
     '''
@@ -146,73 +186,39 @@ def execute_movement_commands(mount_serial_port, RA_tuple, DEC_tuple):
 
     # Ready to take pictures. Call camera_control.py and send camera data if necessary.
 
-def connect_to_mount():
-    '''
-    Make sure mount is working and get important starting information:
-    
-    1. Use ':MountInfo#' to confirm serial communication 
-    2. Get and return current RA and DEC coordinates
-    3. Check the tracking rate is set to 256x sidereal and change it if it is wrong
-    '''
+def main():
+    mount_port, START_COORDINATES = connect_to_mount()
 
-    # Open serial communication
-    with serial.Serial(get_mount_port(), 9600, timeout=1) as mountSerialPort:
-        
-        # Verify that the mount is communicating as expected
-        mountSerialPort.write(b':MountInfo#')
-        modelNumber = mountSerialPort.read(4)
-        if modelNumber != b'0030':
-            raise Exception("Incorrect model number: Bad serial communication. Required mount for this software is the iEQ30Pro from iOptron.")
-        
-        # Get the current RA and DEC coordinates
-        mountSerialPort.write(b':GEC#')
-        currentCoordinates = mountSerialPort.read(21) # Expected reponse format is: “sTTTTTTTTXXXXXXXX#”
-        # Split this into an (RA, DEC) tuple and decode the DEC XXXXX part which doesn't have a sign. Test on hardware first.
+    if START_COORDINATES != None: # Caveman intelect data check, improve later
 
-        # Check that the slewing rate is its slowest value for max accuracy, and set it if it isn't
-        mountSerialPort.write(b':GSR#')
-        slewingSpeed = mountSerialPort.read(2)
-        if slewingSpeed != b'7#':
-            print("Incorrect slewing rate, attempting to set it to 256x sidereal")
-            mountSerialPort.write(b':MSR7#')
-            if mountSerialPort.read(1) == b'1':
-                print("Succesfully updated slewing rate.")
+        ### Start main mount loop that listens for incoming command from moxa-pocs/core and executes as necessary
+        while True:
+
+            input = get_mount_command()
+
+            ### Check that input is the right data type, DO NOT UNPARK OR MOVE IF NOT
+            if isinstance(input, SkyCoord): # Refine later
+
+                mount_port.write(b':MP0#') # Unpark mount, dont need to check if its already unparked, as command has no effect if already unparked
+
+                RA_tuple, DEC_tuple = create_movement_commands(START_COORDINATES, get_mount_command(dtype='SkyCoord'))
+
+                execute_movement_commands(mount_port, RA_tuple, DEC_tuple)
+            elif input == 'go_safe':
+                # Park the mount
+                print("Parking the mount!")
+                mount_port.write(b':MP1#')
+            elif input == 'close_comms':
+                mount_port.close()
+            elif input == 'listen':
+                # Set the listen command to None in whatever communication method we choose
+                continue
             else:
-                raise Exception("Problem setting sidereal tracking rate to 256x sidereal")
-        
-        return mountSerialPort, currentCoordinates
+                # Park the mount if communication with core/obs scheduler is lost
+                # When setting up communication between mount_controller and core/obs scheduler there needs to be a heart beat, 
+                # so that 
+                print("Parking the mount!")
+                mount_port.write(b':MP1#')
 
-mount_port, START_COORDINATES = connect_to_mount()
-
-if START_COORDINATES != None: # Caveman intelect data check, improve later
-
-    ### Start main mount loop that listens for incoming command from moxa-pocs/core and executes as necessary
-    while True:
-
-        input = get_mount_command()
-
-        ### Check that input is the right data type, DO NOT UNPARK OR MOVE IF NOT
-        if isinstance(input, SkyCoord): # Refine later
-
-            ########### Make this entire section into a callable function #####################
-
-            mount_port.write(b':MP0#') # Unpark mount, dont need to check if its already unparked, as command has no effect if already unparked
-
-            RA_tuple, DEC_tuple = create_movement_commands(START_COORDINATES, get_mount_command(dtype='SkyCoord'))
-
-            execute_movement_commands(mount_port, RA_tuple, DEC_tuple)
-        elif input == 'go_safe':
-            # Park the mount
-            print("Parking the mount!")
-            mount_port.write(b':MP1#')
-        elif input == 'close_comms':
-            mount_port.close()
-        elif input == 'listen':
-            # Set the listen command to None in whatever communication method we choose
-            continue
-        else:
-            # Park the mount if communication with core/obs scheduler is lost
-            # When setting up communication between mount_controller and core/obs scheduler there needs to be a heart beat, 
-            # so that 
-            print("Parking the mount!")
-            mount_port.write(b':MP1#')
+if __name__ == '__main__':
+    main()
