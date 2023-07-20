@@ -116,15 +116,6 @@ def execute_movement_commands(mount_serial_port, RA_tuple, DEC_tuple):
     ra_cmd, ra_time = RA_tuple
     dec_cmd, dec_time = DEC_tuple
 
-    ra_start_time = time.time()
-    print(f"Sent serial command: {ra_cmd} Execution time: {ra_time}")
-    while (ra_start_time + ra_time + 5) > time.time():
-        
-        if ra_start_time + ra_time <= time.time():
-            print(f"Sent serial command ':qR#' to stop RA mount movement at {time.time()}")
-            print(f"Actual execution time is {time.time() - ra_start_time}")
-            break
-
     dec_start_time = time.time()
     print(f"Sent serial command: {dec_cmd} Execution time: {dec_time}")
     while (dec_start_time + dec_time + 5) > time.time():
@@ -132,6 +123,15 @@ def execute_movement_commands(mount_serial_port, RA_tuple, DEC_tuple):
         if dec_start_time + dec_time <= time.time():
             print(f"Sent serial command ':qD#' to stop DEC mount movement at {time.time()}")
             print(f"Actual execution time is {time.time() - dec_start_time}")
+            break
+
+    ra_start_time = time.time()
+    print(f"Sent serial command: {ra_cmd} Execution time: {ra_time}")
+    while (ra_start_time + ra_time + 5) > time.time():
+        
+        if ra_start_time + ra_time <= time.time():
+            print(f"Sent serial command ':qR#' to stop RA mount movement at {time.time()}")
+            print(f"Actual execution time is {time.time() - ra_start_time}")
             break
 
     print(f"Sent serial command: ':ST1#' to start tracking SkyCoord: {get_mount_command()}")
