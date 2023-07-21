@@ -1,0 +1,48 @@
+Polaris:
+  user_note: |
+    Enter multi-line string notes here. Whenever this target is observed, 
+    the observation session will get its own time stamped directory, and 
+    this note will be placed inside as a .txt file.
+  priority: 10
+  ra: 03 00 54
+  dec: +89 21 28
+  primary_cam: 
+      take_images: True
+      num_captures: 10
+      exposure_time: 120
+  secondary_cam:
+      take_images: False
+      num_captures: 
+      exposure_time: 
+Andromeda:
+  user_note: |
+    Enter multi-line string notes here. Whenever this target is observed, 
+    the observation session will get its own time stamped directory, and 
+    this note will be placed inside as a .txt file.
+  priority: 100
+  ra: 00 42 44
+  dec: +41 16 09
+  primary_cam: 
+      take_images: True
+      num_captures: 10
+      exposure_time: 120
+  secondary_cam:
+      take_images: True
+      num_captures: 40
+      exposure_time: 30
+Sirius:
+  user_note: |
+    Enter multi-line string notes here. Whenever this target is observed, 
+    the observation session will get its own time stamped directory, and 
+    this note will be placed inside as a .txt file.
+  priority: 150
+  ra: 06 46 09
+  dec: -16 44 46.5
+  primary_cam: 
+      take_images: True
+      num_captures: 30
+      exposure_time: 90
+  secondary_cam:
+      take_images: False
+      num_captures: -1
+      exposure_time: 0

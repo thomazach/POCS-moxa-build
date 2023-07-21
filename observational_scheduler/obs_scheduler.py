@@ -1,8 +1,9 @@
+import os
 import heapq
 import yaml
 from yaml.loader import SafeLoader
 
-DATA_FILE_DEFAULT_PATH = 'observational_scheduler/mockData.yaml'
+DATA_FILE_DEFAULT_PATH = os.path.dirname(__file__).replace('observational_scheduler', 'conf_files/test_fields.yaml')
 
 class target:
 
@@ -23,18 +24,18 @@ class target:
         return False
     
     def __str__(self):
-        return 'priority='+str(0 - self.priority)+', name='+self.name+', position='+self.position
+        return f'priority={0 - self.priority} name={self.name}, position={self.position}'
 
 def getTargetQueue(PATH):
     pQueue = []
     heapq.heapify(pQueue)
-    data = 0
+    dataDict = 0
     with open(DATA_FILE_DEFAULT_PATH) as file:
-        data = yaml.load(file, Loader=SafeLoader)
-    for entry in data:
-        prio = entry['observation']['priority']
-        name = entry['field']['name']
-        position = entry['field']['position']
+        dataDict = yaml.load(file, Loader=SafeLoader)
+    for key, entry in dataDict.items():
+        name = key
+        prio = entry['priority']
+        position = (entry['ra'], entry['dec'])
 
         heapq.heappush(pQueue, target(name, position, prio))
     return pQueue
