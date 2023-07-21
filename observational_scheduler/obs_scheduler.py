@@ -1,4 +1,3 @@
-import os
 import heapq
 import yaml
 from yaml.loader import SafeLoader
@@ -11,8 +10,6 @@ class target:
         self.name = name
         self.observation_notes = observation_notes
         self.position = position
-        self.camera_settings = camera_settings
-        self.cmd = command
 
         # we store priorities as negative numbers because heapq is a min heap
         self.priority = 0 - priority
