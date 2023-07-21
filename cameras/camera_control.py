@@ -1,33 +1,24 @@
-import threading
-import time
-import string
-import subprocess
 import os
+import sys
+import subprocess
+import pickle
+import threading
 import datetime
 
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+from observational_scheduler.obs_scheduler import target
 
-def give_dummy_command_data():
-    '''
-    Recieves the following from pocs.observational_scheduler:
-    -number of images to take in this observation
-    -exposure time of each image
-    -what combination of cameras to take images with
+def requestCameraCommand():
+    relative_path = os.path.dirname(os.path.dirname(__file__))
+    with open(f"{relative_path}\pickle\current_target.pickle", "rb") as f:
+        current_target = pickle.load(f)
+    return current_target
 
-    Example .yaml:
-
-    observation:
-        priority: 100
-        primary_cam: 
-            take_images: True
-            num_captures: 10
-            exposure_time: 120
-
-        secondary_cam:
-            take_images: True
-            num_captures: 40
-            exposure_time: 30
-    '''
-    return dict({'primary_cam': {'take_images': True, 'num_captures': 10, 'exposure_time': 12}, 'secondary_cam': {'take_images': True, 'num_captures': 40, 'exposure_time': 3}})
+def sendTargetObjectCommand(current_target_object, cmd):
+    relative_path = os.path.dirname(os.path.dirname(__file__))
+    current_target_object.cmd = cmd
+    with open(f"{relative_path}\pickle\current_target.pickle", "wb") as f:
+        pickle.dump(current_target_object, f)
 
 def get_camera_paths_dummy():
     return "usb:001,007", "usb:001,008"
@@ -71,7 +62,7 @@ def take_observation(cameraSettings, iso=1):
 
         num_captures -= 1
 
-def initialize_observation(cam_observation_dict):
+def initialize_observation(current_target_object):
     # UNCOMMENT ALL subprocess.run LINES IN PRODUCTION
 
     format = "%Y-%m-%dT%H:%M:%S"
@@ -79,21 +70,29 @@ def initialize_observation(cam_observation_dict):
     time_and_date = datetime.datetime.now(tz=timezone).strftime(format)
 
     directoryPath=os.path.dirname(os.path.abspath(__file__)).replace('cameras', 'images')
-    cmdMakeObservationDirectory = f"cd /home/uname/moxa-pocs/images; mkdir {time_and_date}".split(' ')
+    cmdMakeObservationDirectory = f"cd {directoryPath}; mkdir {time_and_date}; cd {time_and_date}; mkdir 'Primary_Cam'; mkdir 'Secondary_Cam'".split(' ')
     #subprocess.run(cmdMakeObservationDirectory)
 
     primary_camera_path, secondary_camera_path = get_camera_paths_dummy() # Replace with get_camera_paths in production
     primary_camera = ('Primary_Cam', primary_camera_path)
     secondary_camera = ('Secondary_Cam', secondary_camera_path)
 
-    cameraSettings = [primary_camera[0], primary_camera[1], cam_observation_dict['primary_cam']['num_captures'], cam_observation_dict['primary_cam']['exposure_time'], time_and_date, directoryPath]
+    cameraSettingsPrimary = [primary_camera[0], primary_camera[1], current_target_object.camera_settings['primary_cam']['num_captures'], current_target_object.camera_settings['primary_cam']['exposure_time'], time_and_date, directoryPath]
+    cameraSettingsSecondary = [secondary_camera[0], secondary_camera[1], current_target_object.camera_settings['secondary_cam']['num_captures'], current_target_object.camera_settings['secondary_cam']['exposure_time'], time_and_date, directoryPath]
 
-    if cam_observation_dict['primary_cam']['take_images']:
-        threading.Thread(target=take_observation, args=([cameraSettings])).start()
+    if current_target_object.camera_settings['primary_cam']['take_images']:
+        threading.Thread(target=take_observation, args=([cameraSettingsPrimary])).start()
 
-    if cam_observation_dict['secondary_cam']['take_images']:
-        take_observation(cameraSettings)
+    if current_target_object.camera_settings['secondary_cam']['take_images']:
+        take_observation(cameraSettingsSecondary)
 
-config = give_dummy_command_data()
+def main():
 
-initialize_observation(config)
+    current_target = requestCameraCommand()
+    match current_target.cmd:
+
+        case 'take images':
+            initialize_observation(current_target)
+
+if __name__ == '__main__':
+    main()
