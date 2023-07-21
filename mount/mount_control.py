@@ -68,19 +68,20 @@ def connect_to_mount():
     
 
 ### Recieve a command from moxa-pocs/core by loading the pickle instance it has provided in the pickle directory
-def get_mount_command(dtype='SkyCoord'):
+def request_mount_command():
     relative_path = os.path.dirname(__file__).replace('mount', 'pickle')
-    # sys.path.append(relative_path)
     with open(f"{relative_path}\current_target.pickle", "rb") as f:
         current_target = pickle.load(f)
     
-    return(current_target)
-    # if dtype == 'SkyCoord':
-    #     return SkyCoord('00 42 44 +41 16 09', unit=(u.hourangle, u.deg))
-    # elif dtype == 'close_comms':
-    #     return 'close_comms'
-    # else:
-    #     return 'go_safe'
+    # To accelerate testing, im making an atribute here that should be created in the .yaml and passed accordingly through obs_scheduler and core
+    current_target.observation_state = 'start'
+
+    # Other than the safety commands, the mount only needs to know the position of the target once
+    if current_target.observation_state == 'start':
+        current_target.observation_state = 'slewing to target'
+        return SkyCoord(current_target.position['ra'], current_target.position['dec'], unit=(u.hourangle, u.deg))
+    else:
+        return current_target.observation_state
 
 def create_movement_commands(current_position, desired_position):
     '''
@@ -184,12 +185,11 @@ def execute_movement_commands(mount_serial_port, RA_tuple, DEC_tuple):
                 print(f"Actual execution time is {time.time() - ra_start_time}")
                 break
 
-        print(f"Sending serial command: ':ST1#' to start tracking SkyCoord: {get_mount_command()}")
+        print(f"Sending serial command: ':ST1#' to start tracking...")
         mount_serial_port.write(b':ST1#')
 
-    # Ready to take pictures. Call camera_control.py and send camera data if necessary.
+    # Ready to take pictures. Call camera_control.py
 
-'''
 def main():
     mount_port, START_COORDINATES = connect_to_mount()
 
@@ -197,35 +197,31 @@ def main():
 
         ### Start main mount loop that listens for incoming command from moxa-pocs/core and executes as necessary
         while True:
+        
+            time.sleep(10)
 
-            input = get_mount_command()
+            input = request_mount_command()
 
-            ### Check that input is the right data type, DO NOT UNPARK OR MOVE IF NOT
-            if isinstance(input, SkyCoord): # Refine later
+            match input:
 
-                mount_port.write(b':MP0#') # Unpark mount, dont need to check if its already unparked, as command has no effect if already unparked
+                case SkyCoord():
+                    mount_port.write(b':MP0#') # Unpark mount, dont need to check if its already unparked since command has no effect if already unparked
+                    RA_tuple, DEC_tuple = create_movement_commands(START_COORDINATES, input)
+                    execute_movement_commands(mount_port, RA_tuple, DEC_tuple)
 
-                RA_tuple, DEC_tuple = create_movement_commands(START_COORDINATES, get_mount_command(dtype='SkyCoord'))
+                case 'park':
+                    print("Parking the mount.")
+                    mount_port.write(b':MP1#')
+                    
+                case 'emergency park':
+                    print("Parking the mount and aborting observation of this target")
+                    mount_port.write(b':MP1#')
 
-                execute_movement_commands(mount_port, RA_tuple, DEC_tuple)
-            elif input == 'go_safe':
-                # Park the mount
-                print("Parking the mount!")
-                mount_port.write(b':MP1#')
-            elif input == 'close_comms':
-                mount_port.close()
-            elif input == 'listen':
-                # Set the listen command to None in whatever communication method we choose
-                continue
-            else:
-                # Park the mount if communication with core/obs scheduler is lost
-                # When setting up communication between mount_controller and core/obs scheduler there needs to be a heart beat, 
-                # so that 
-                print("Parking the mount!")
-                mount_port.write(b':MP1#')
+                case 'close mount serial port':
+                    mount_port.close()
+                
+                case _:
+                    continue
 
 if __name__ == '__main__':
     main()
-'''
-current_target = get_mount_command()
-print(current_target)

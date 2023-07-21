@@ -1,13 +1,4 @@
 moxa-pocs.code-workspace
 __pycache__
 .vscode
-<<<<<<< HEAD
 .pickle
-*.pickle
-*.pkl
-<<<<<<< HEAD
-=======
-=======
-.pickle
->>>>>>> 10138a2 (Read/write from current_target.pickle and execute observation(print statements for testing))
->>>>>>> 72e3e3d (Read/write from current_target.pickle and execute observation(print statements for testing))
