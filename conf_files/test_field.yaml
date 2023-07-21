@@ -1,0 +1,21 @@
+field_names:
+  -Andromeda
+
+Andromeda:
+  user_note: |
+    The Andromeda Galaxy is a barred spiral galaxy and is the nearest major galaxy to the Milky Way.
+
+    Not sure if this is a good idea, but this could be added as metadata or textfile
+    in the observation folder to provide notes on why its being observed or instructions
+    on how to analyze the data collected in the field. You can also copy and paste stuff.
+  priority: 100
+  ra: 00 42 44
+  dec: +41 16 09
+  primary_cam: 
+      take_images: True
+      num_captures: 10
+      exposure_time: 120
+  secondary_cam:
+      take_images: True
+      num_captures: 40
+      exposure_time: 30
