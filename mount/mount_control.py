@@ -75,7 +75,8 @@ def request_mount_command():
 
     return current_target
 
-def sendTargetObjectCommand(current_target_object):
+def sendTargetObjectCommand(current_target_object, cmd):
+    current_target_object.cmd = cmd
     with open("pickle/current_target.pickle", "wb") as f:
         pickle.dump(current_target_object, f)
 
@@ -204,25 +205,21 @@ def main():
                     mount_port.write(b':MP0#') # Unpark mount, dont need to check if its already unparked since command has no effect if already unparked
                     RA_tuple, DEC_tuple = create_movement_commands(START_COORDINATES, SkyCoord(current_target.position['ra'], current_target.position['dec'], unit=(u.hourangle, u.deg)))
                     execute_movement_commands(mount_port, RA_tuple, DEC_tuple)
-                    current_target.cmd = 'take images'
-                    sendTargetObjectCommand(current_target)
+                    sendTargetObjectCommand(current_target, 'take images')
 
                 case 'park':
                     print("Parking the mount.")
                     mount_port.write(b':MP1#')
-                    current_target.cmd = 'parked'
-                    sendTargetObjectCommand(current_target)
+                    sendTargetObjectCommand(current_target, 'parked')
                     
                 case 'emergency park':
                     print("Parking the mount and aborting observation of this target")
                     mount_port.write(b':MP1#')
-                    current_target.cmd = 'emergency parked'
-                    sendTargetObjectCommand(current_target)
+                    sendTargetObjectCommand(current_target, 'emergency parked')
 
                 case 'close mount serial port':
                     mount_port.close()
-                    current_target.cmd = 'stopped mount serial'
-                    sendTargetObjectCommand(current_target)
+                    sendTargetObjectCommand(current_target, 'stopped mount serial')
                 
                 case _:
                     continue
