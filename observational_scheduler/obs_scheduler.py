@@ -42,10 +42,3 @@ def getTargetQueue(PATH):
 
         heapq.heappush(pQueue, target(name, position, camera_settings, priority=prio, observation_notes=obs_note))
     return pQueue
-
-print(DATA_FILE_DEFAULT_PATH)
-queue = getTargetQueue(DATA_FILE_DEFAULT_PATH)
-for target_obj in queue:
-    print(target_obj)
-    input("Enter to continue:")
-    print('\n\n\n')
