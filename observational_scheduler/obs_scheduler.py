@@ -13,10 +13,9 @@ class target:
 
         # we store priorities as negative numbers because heapq is a min heap
         self.priority = 0 - priority
-
-
+    
     def __lt__(self, other):
-        return self.priority < other.priority
+        return (0 - self.priority) < (0 - other.priority)
     
     def __eq__(self, other):
         if self.name == other.name and self.priority == other.priority and self.position == other.position:
