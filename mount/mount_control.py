@@ -1,8 +1,13 @@
+import os
+import sys
 import time
 import serial
-import yaml
+import pickle
 from astropy import units as u
 from astropy.coordinates import SkyCoord
+
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+from observational_scheduler.obs_scheduler import target
 
 
 '''
@@ -62,15 +67,20 @@ def connect_to_mount():
         return mountSerialPort, currentCoordinates
     
 
-### Recieve a command from moxa-pocs/core, since this is being written before moxa-pocs/core, i will be using a dummy function that manually feeds input
+### Recieve a command from moxa-pocs/core by loading the pickle instance it has provided in the pickle directory
 def get_mount_command(dtype='SkyCoord'):
-
-    if dtype == 'SkyCoord':
-        return SkyCoord('00 42 44 +41 16 09', unit=(u.hourangle, u.deg))
-    elif dtype == 'close_comms':
-        return 'close_comms'
-    else:
-        return 'go_safe'
+    relative_path = os.path.dirname(__file__).replace('mount', 'pickle')
+    # sys.path.append(relative_path)
+    with open(f"{relative_path}\current_target.pickle", "rb") as f:
+        current_target = pickle.load(f)
+    
+    return(current_target)
+    # if dtype == 'SkyCoord':
+    #     return SkyCoord('00 42 44 +41 16 09', unit=(u.hourangle, u.deg))
+    # elif dtype == 'close_comms':
+    #     return 'close_comms'
+    # else:
+    #     return 'go_safe'
 
 def create_movement_commands(current_position, desired_position):
     '''
@@ -179,6 +189,7 @@ def execute_movement_commands(mount_serial_port, RA_tuple, DEC_tuple):
 
     # Ready to take pictures. Call camera_control.py and send camera data if necessary.
 
+'''
 def main():
     mount_port, START_COORDINATES = connect_to_mount()
 
@@ -215,3 +226,6 @@ def main():
 
 if __name__ == '__main__':
     main()
+'''
+current_target = get_mount_command()
+print(current_target)
