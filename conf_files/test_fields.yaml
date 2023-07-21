@@ -23,7 +23,7 @@ Andromeda:
   priority: 100
   ra: 00 42 44
   dec: +41 16 09
-  cmd: 'slew to target'
+  cmd:
   primary_cam: 
       take_images: True
       num_captures: 10
