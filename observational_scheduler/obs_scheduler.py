@@ -7,9 +7,11 @@ DATA_FILE_DEFAULT_PATH = os.path.dirname(__file__).replace('observational_schedu
 
 class target:
 
-    def __init__(self, name, position, priority = 0)->None:
+    def __init__(self, name, position, camera_settings, priority = 0, observation_notes = None)->None:
         self.name = name
+        self.observation_notes = observation_notes
         self.position = position
+        self.camera_settings = camera_settings
 
         # we store priorities as negative numbers because heapq is a min heap
         self.priority = 0 - priority
@@ -23,7 +25,7 @@ class target:
         return False
     
     def __str__(self):
-        return f'priority={0 - self.priority} name={self.name}, position={self.position}'
+        return f'---\npriority={0 - self.priority}\nname={self.name}\nposition={self.position}\ncamera_settings={self.camera_settings}\nobservation_notes={self.observation_notes}\n---'
 
 def getTargetQueue(PATH):
     pQueue = []
@@ -33,8 +35,17 @@ def getTargetQueue(PATH):
         dataDict = yaml.load(file, Loader=SafeLoader)
     for key, entry in dataDict.items():
         name = key
+        obs_note = entry['user_note']
         prio = entry['priority']
-        position = (entry['ra'], entry['dec'])
+        position = {'ra': entry['ra'], 'dec' :entry['dec']}
+        camera_settings = {'primary_cam' : entry['primary_cam'], 'secondary_cam' : entry['secondary_cam']}
 
-        heapq.heappush(pQueue, target(name, position, prio))
+        heapq.heappush(pQueue, target(name, position, camera_settings, priority=prio, observation_notes=obs_note))
     return pQueue
+
+print(DATA_FILE_DEFAULT_PATH)
+queue = getTargetQueue(DATA_FILE_DEFAULT_PATH)
+for target_obj in queue:
+    print(target_obj)
+    input("Enter to continue:")
+    print('\n\n\n')
