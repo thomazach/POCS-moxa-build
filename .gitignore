@@ -2,3 +2,5 @@ moxa-pocs.code-workspace
 __pycache__
 .vscode
 .pickle
+*.pickle
+*.pkl
