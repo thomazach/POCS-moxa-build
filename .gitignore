@@ -5,8 +5,3 @@ __pycache__
 .pickle
 *.pickle
 *.pkl
-=======
-.vscode
-__pycache__
-*.pickle
->>>>>>> 073a191 (Initial arduino infrastructure, going to test on dev unit)

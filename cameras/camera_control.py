@@ -87,12 +87,17 @@ def take_observation(cam_type, camera_path, num_captures, exposure_time, observa
         num_captures -= 1
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 def initialize_observation(current_target_object):
     # UNCOMMENT ALL subprocess.run LINES IN PRODUCTION
 =======
+=======
+>>>>>>> 30564d2 (Read/write from current_target.pickle and execute observation(print statements for testing))
 <<<<<<< HEAD
 def initialize_observation(cam_observation_dict):
 =======
+=======
+>>>>>>> f1c2cb2 (Read/write from current_target.pickle and execute observation(print statements for testing))
 def initialize_observation(current_target_object):
     # UNCOMMENT ALL subprocess.run LINES IN PRODUCTION
 >>>>>>> f1c2cb2 (Read/write from current_target.pickle and execute observation(print statements for testing))
@@ -120,6 +125,7 @@ def initialize_observation(current_target_object):
     primary_camera = ('Primary_Cam', primary_camera_path)
     secondary_camera = ('Secondary_Cam', secondary_camera_path)
 
+<<<<<<< HEAD
 <<<<<<< HEAD
     cameraSettingsPrimary = [primary_camera[0], primary_camera[1], current_target_object.camera_settings['primary_cam']['num_captures'], current_target_object.camera_settings['primary_cam']['exposure_time'], time_and_date, directoryPath]
     cameraSettingsSecondary = [secondary_camera[0], secondary_camera[1], current_target_object.camera_settings['secondary_cam']['num_captures'], current_target_object.camera_settings['secondary_cam']['exposure_time'], time_and_date, directoryPath]
@@ -155,6 +161,8 @@ def main():
                         secondaryCamProc.terminate()
                         break
 =======
+=======
+>>>>>>> 30564d2 (Read/write from current_target.pickle and execute observation(print statements for testing))
 <<<<<<< HEAD
     if cam_observation_dict['primary_cam']['take_images']:
         threading.Thread(target=take_observation, args=(primary_camera[0], primary_camera[1], cam_observation_dict['primary_cam']['num_captures'], cam_observation_dict['primary_cam']['exposure_time'], time_and_date)).start()
@@ -215,7 +223,28 @@ def main():
                         primaryCamProc.terminate()
                         secondaryCamProc.terminate()
                         break
+<<<<<<< HEAD
 >>>>>>> 588729e (Implement multiprocessing to handle termination of camera processes in emergency park cases)
+=======
+=======
+    cameraSettingsPrimary = [primary_camera[0], primary_camera[1], current_target_object.camera_settings['primary_cam']['num_captures'], current_target_object.camera_settings['primary_cam']['exposure_time'], time_and_date, directoryPath]
+    cameraSettingsSecondary = [secondary_camera[0], secondary_camera[1], current_target_object.camera_settings['secondary_cam']['num_captures'], current_target_object.camera_settings['secondary_cam']['exposure_time'], time_and_date, directoryPath]
+
+    if current_target_object.camera_settings['primary_cam']['take_images']:
+        threading.Thread(target=take_observation, args=([cameraSettingsPrimary])).start()
+
+    if current_target_object.camera_settings['secondary_cam']['take_images']:
+        take_observation(cameraSettingsSecondary)
+
+def main():
+
+    current_target = requestCameraCommand()
+    match current_target.cmd:
+
+        case 'take images':
+            initialize_observation(current_target)
+>>>>>>> f1c2cb2 (Read/write from current_target.pickle and execute observation(print statements for testing))
+>>>>>>> 30564d2 (Read/write from current_target.pickle and execute observation(print statements for testing))
 
 if __name__ == '__main__':
     main()
