@@ -7,11 +7,12 @@ DATA_FILE_DEFAULT_PATH = os.path.dirname(__file__).replace('observational_schedu
 
 class target:
 
-    def __init__(self, name, position, camera_settings, priority = 0, observation_notes = None)->None:
+    def __init__(self, name, position, camera_settings, priority = 0, observation_notes = None, command = 'slew to target')->None:
         self.name = name
         self.observation_notes = observation_notes
         self.position = position
         self.camera_settings = camera_settings
+        self.cmd = command
 
         # we store priorities as negative numbers because heapq is a min heap
         self.priority = 0 - priority
