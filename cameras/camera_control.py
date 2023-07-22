@@ -12,6 +12,7 @@ import threading
 import multiprocessing
 >>>>>>> b4028cf (Implement multiprocessing to handle termination of camera processes in emergency park cases)
 import datetime
+import time
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from observational_scheduler.obs_scheduler import target
