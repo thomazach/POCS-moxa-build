@@ -2,9 +2,8 @@ import os
 import sys
 import subprocess
 import pickle
-import threading
+import multiprocessing
 import datetime
-import time
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from observational_scheduler.obs_scheduler import target
@@ -49,7 +48,7 @@ def take_observation(cameraSettings, iso=1):
         if num_captures == 0:
             break
         
-        # Clear the camera's RAM in a hacky way to allow for back to back large exposures (tested on 120s)
+        # Clear the camera's RAM to allow for back to back large exposures (tested on 120s)
         cmdClearRAM = f"gphoto2 --port {camera_path} --set-config imageformat=0".split(' ')
         #subprocess.run(cmdClearRAM)
         cmdClearRAM = f"gphoto2 --port {camera_path} --set-config imageformat=9".split(' ')
@@ -82,24 +81,35 @@ def initialize_observation(current_target_object):
     cameraSettingsSecondary = [secondary_camera[0], secondary_camera[1], current_target_object.camera_settings['secondary_cam']['num_captures'], current_target_object.camera_settings['secondary_cam']['exposure_time'], time_and_date, directoryPath]
 
     if current_target_object.camera_settings['primary_cam']['take_images']:
-        threading.Thread(target=take_observation, args=([cameraSettingsPrimary])).start()
+        primary_cam_process = multiprocessing.Process(target=take_observation, args=([cameraSettingsPrimary]))
+        primary_cam_process.start()
 
     if current_target_object.camera_settings['secondary_cam']['take_images']:
-        take_observation(cameraSettingsSecondary)
+        secondary_cam_process = multiprocessing.Process(target=take_observation, args=([cameraSettingsSecondary]))
+        secondary_cam_process.start()
+    
+    return primary_cam_process, secondary_cam_process
 
 def main():
     current_target = requestCameraCommand()
 
     if current_target.cmd == 'take images':
-            initialize_observation(current_target)
-            # Need more control over threading, either need a threading control object or use multiprocessing
-            # With the current setup, the state/cmd is set to 'observation complete' during the observation. 
-            # I can't have one of the camera observation threads running as normal, since I need to check for 
-            # emergency exit, and the emergency exit command would be overwritten by observation complete if 
-            # I run the secondary cam without threading. Currently its setup to run the second camera without threading,
-            # since we don't need to worry about emergency stop cases in intial testing. The same problem also happens
-            # when the secondary cameras net observation time is longer than the other
-            sendTargetObjectCommand(current_target, 'observation complete')
+            primaryCamProc, secondaryCamProc = initialize_observation(current_target)
+
+            while True:
+                # Method to detect if both camera processes or running
+                primaryCamProc.join(timeout=0)
+                secondaryCamProc.join(timeout=0)
+                if not (primaryCamProc.is_alive() or secondaryCamProc.is_alive()):
+                    sendTargetObjectCommand(current_target, 'observation complete')
+                    break
+
+                current_target = requestCameraCommand()
+                match current_target.cmd:
+                    case 'emergency park':
+                        primaryCamProc.terminate()
+                        secondaryCamProc.terminate()
+                        break
 
 if __name__ == '__main__':
     main()
