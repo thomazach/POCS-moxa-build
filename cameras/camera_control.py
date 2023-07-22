@@ -95,7 +95,6 @@ def main():
     current_target = requestCameraCommand()
 
     if current_target.cmd == 'take images':
-<<<<<<< HEAD
             primaryCamProc, secondaryCamProc = initialize_observation(current_target)
 
             while True:
@@ -112,17 +111,6 @@ def main():
                         primaryCamProc.terminate()
                         secondaryCamProc.terminate()
                         break
-=======
-            initialize_observation(current_target)
-            # Need more control over threading, either need a threading control object or use multiprocessing
-            # With the current setup, the state/cmd is set to 'observation complete' during the observation. 
-            # I can't have one of the camera observation threads running as normal, since I need to check for 
-            # emergency exit, and the emergency exit command would be overwritten by observation complete if 
-            # I run the secondary cam without threading. Currently its setup to run the second camera without threading,
-            # since we don't need to worry about emergency stop cases in intial testing. The same problem also happens
-            # when the secondary cameras net observation time is longer than the other
-            sendTargetObjectCommand(current_target, 'observation complete')
->>>>>>> 36e1f13 (Added issue comment for camera threading compatibility with target.cmd pickle instance)
 
 if __name__ == '__main__':
     main()
