@@ -1,3 +1,4 @@
+# NOT FULLY HARDWARE TESTED
 import os
 import sys
 import time
@@ -8,7 +9,6 @@ from astropy.coordinates import SkyCoord
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from observational_scheduler.obs_scheduler import target
-
 
 '''
 
@@ -66,7 +66,6 @@ def connect_to_mount():
         
         return mountSerialPort, currentCoordinates
     
-
 ### Recieve a command from moxa-pocs/core by loading the pickle instance it has provided in the pickle directory
 def request_mount_command():
     relative_path = os.path.dirname(__file__).replace('mount', 'pickle')
@@ -145,15 +144,10 @@ def create_movement_commands(current_position, desired_position):
 
 def execute_movement_commands(mount_serial_port, RA_tuple, DEC_tuple):
     '''
-    DEV NOTES: 
-        -Replace test prints with serial writes + logging functionality
-        -Blocks for a long period of time, consider moving to seperate thread.
-
     Takes the RA and DEC tuples from create_movement_commands function and executes them using serial
-    communication. For testing purposes, only supports print statements currently (7/5/2023).
+    communication.
 
-    Does not execute commands concurrently.
-
+    Does not execute motion of the ra and dec axis at the same time.
     '''
 
     ra_cmd, ra_time = RA_tuple
@@ -185,8 +179,6 @@ def execute_movement_commands(mount_serial_port, RA_tuple, DEC_tuple):
         print(f"Sending serial command: ':ST1#' to start tracking...")
         mount_serial_port.write(b':ST1#')
 
-    # Ready to take pictures. Call camera_control.py
-
 def main():
     mount_port, START_COORDINATES = connect_to_mount()
 
@@ -195,7 +187,7 @@ def main():
         ### Start main mount loop that listens for incoming command from moxa-pocs/core and executes as necessary
         while True:
         
-            time.sleep(10)
+            time.sleep(1)
 
             current_target = request_mount_command()
 
@@ -206,6 +198,7 @@ def main():
                     RA_tuple, DEC_tuple = create_movement_commands(START_COORDINATES, SkyCoord(current_target.position['ra'], current_target.position['dec'], unit=(u.hourangle, u.deg)))
                     execute_movement_commands(mount_port, RA_tuple, DEC_tuple)
                     sendTargetObjectCommand(current_target, 'take images')
+                    os.system('cd .. ; python cameras/camera_control.py')
 
                 case 'park':
                     print("Parking the mount.")
