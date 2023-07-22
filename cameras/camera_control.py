@@ -4,7 +4,6 @@ import subprocess
 import pickle
 import multiprocessing
 import datetime
-import time
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from observational_scheduler.obs_scheduler import target
@@ -47,6 +46,30 @@ def take_observation(cam_type, camera_path, num_captures, exposure_time, observa
         # UNCOMMENT IN PRODUCTION
         #os.sys(f"gphoto2 --port {camera_path} --set-config iso={iso} --filename /home/uname/moxa-pocs/images/{observation_dir}/{cam_type}/astro_image_{num_captures}.cr2 --set-config-index shutterpseed=0 --wait-event=1s --set-config-index eosremoterelease=2 --wait-event={exposure_time}s --set-config-index eosremoterelease=4 --wait-event-and-download=2s")
         
+<<<<<<< HEAD
+        # Clear the camera's RAM to allow for back to back large exposures (tested on 120s)
+        cmdClearRAM = f"gphoto2 --port {camera_path} --set-config imageformat=0".split(' ')
+        #subprocess.run(cmdClearRAM)
+        cmdClearRAM = f"gphoto2 --port {camera_path} --set-config imageformat=9".split(' ')
+        #subprocess.run(cmdClearRAM)
+        
+        cmdArgs = f"gphoto2 --port {camera_path} --set-config iso={iso} --filename {directoryPath}/{observation_dir}/{cam_type}/astro_image_{num_captures}.cr2 --set-config-index shutterpseed=0 --wait-event=1s --set-config-index eosremoterelease=2 --wait-event={exposure_time}s --set-config-index eosremoterelease=4 --wait-event-and-download=2s".split(' ')
+        #subprocess.run(cmdArgs)
+=======
+<<<<<<< HEAD
+        time.sleep(exposure_time) # May or may not be necessary, don't have tesing setup yet
+>>>>>>> 588729e (Implement multiprocessing to handle termination of camera processes in emergency park cases)
+
+        # REMOVE IN PRODUCTION, TEST PRINT SINCE ON WINDOWS
+        print(cmdArgs)
+
+<<<<<<< HEAD
+=======
+        # UNCOMMENT IN PRODUCTION
+        # Clear the camera's RAM in a hacky way to allow for back to back large exposures (tested on 120s)
+        #os.sys(f"gphoto2 --port {camera_path} --set-config imageformat=0")
+        #os.sys(f"gphoto2 --port {camera_path} --set-config imageformat=9")
+=======
         # Clear the camera's RAM to allow for back to back large exposures (tested on 120s)
         cmdClearRAM = f"gphoto2 --port {camera_path} --set-config imageformat=0".split(' ')
         #subprocess.run(cmdClearRAM)
@@ -59,6 +82,8 @@ def take_observation(cam_type, camera_path, num_captures, exposure_time, observa
         # REMOVE IN PRODUCTION, TEST PRINT SINCE ON WINDOWS
         print(cmdArgs)
 
+>>>>>>> b4028cf (Implement multiprocessing to handle termination of camera processes in emergency park cases)
+>>>>>>> 588729e (Implement multiprocessing to handle termination of camera processes in emergency park cases)
         num_captures -= 1
 
 <<<<<<< HEAD
@@ -141,16 +166,25 @@ def main():
     cameraSettingsSecondary = [secondary_camera[0], secondary_camera[1], current_target_object.camera_settings['secondary_cam']['num_captures'], current_target_object.camera_settings['secondary_cam']['exposure_time'], time_and_date, directoryPath]
 
     if current_target_object.camera_settings['primary_cam']['take_images']:
-        threading.Thread(target=take_observation, args=([cameraSettingsPrimary])).start()
+        primary_cam_process = multiprocessing.Process(target=take_observation, args=([cameraSettingsPrimary]))
+        primary_cam_process.start()
 
     if current_target_object.camera_settings['secondary_cam']['take_images']:
+<<<<<<< HEAD
         take_observation(cameraSettingsSecondary)
 >>>>>>> f1c2cb2 (Read/write from current_target.pickle and execute observation(print statements for testing))
+=======
+        secondary_cam_process = multiprocessing.Process(target=take_observation, args=([cameraSettingsSecondary]))
+        secondary_cam_process.start()
+    
+    return primary_cam_process, secondary_cam_process
+>>>>>>> b4028cf (Implement multiprocessing to handle termination of camera processes in emergency park cases)
 
 def main():
     current_target = requestCameraCommand()
 
     if current_target.cmd == 'take images':
+<<<<<<< HEAD
             initialize_observation(current_target)
 <<<<<<< HEAD
 >>>>>>> 10138a2 (Read/write from current_target.pickle and execute observation(print statements for testing))
@@ -164,6 +198,24 @@ def main():
             # when the secondary cameras net observation time is longer than the other
             sendTargetObjectCommand(current_target, 'observation complete')
 >>>>>>> ffd77c9 (Added issue comment for camera threading compatibility with target.cmd pickle instance)
+=======
+            primaryCamProc, secondaryCamProc = initialize_observation(current_target)
+
+            while True:
+                # Method to detect if both camera processes or running
+                primaryCamProc.join(timeout=0)
+                secondaryCamProc.join(timeout=0)
+                if not (primaryCamProc.is_alive() or secondaryCamProc.is_alive()):
+                    sendTargetObjectCommand(current_target, 'observation complete')
+                    break
+
+                current_target = requestCameraCommand()
+                match current_target.cmd:
+                    case 'emergency park':
+                        primaryCamProc.terminate()
+                        secondaryCamProc.terminate()
+                        break
+>>>>>>> 588729e (Implement multiprocessing to handle termination of camera processes in emergency park cases)
 
 if __name__ == '__main__':
     main()
