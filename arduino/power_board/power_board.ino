@@ -3,13 +3,13 @@ String cmd;
 void setup(){
     Serial.begin(9600);
     Serial.setTimeout(5);
-    delay(2000)
+    delay(2000);
 }
 
 void loop() {
 
   while (Serial.available() > 0){
-    cmd = Serial.readStringUntil(',').toInt()
+    cmd = Serial.readStringUntil(',').toInt();
   }
   Serial.println(cmd);
 /*
