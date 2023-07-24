@@ -16,10 +16,6 @@ void loop() {
     Serial.println(recievedChars);
     cmd_recieved = false;
   }
-
-  Serial.println("ALIVE");
-
-  delay(1000);
 }
 
 void recieveCommand() {
@@ -31,6 +27,8 @@ void recieveCommand() {
 
   while (Serial.available() && cmd_recieved == false) {
     incomingChar = Serial.read();
+    Serial.println(incomingChar);
+
 
     if (incomingChar == startChar) {
       inProgress = true;
