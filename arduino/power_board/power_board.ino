@@ -17,7 +17,9 @@ void loop() {
     cmd_recieved = false;
   }
 
-  delay(100);
+  Serial.println("ALIVE")
+
+  delay(1000);
 }
 
 void recieveCommand() {
