@@ -6,7 +6,7 @@ void setup(){
 
 void loop() {
   readSerial();
-  delay(100)
+  delay(100);
 }
 
 void readSerial() {
