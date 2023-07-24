@@ -61,7 +61,9 @@ def getTestSerialCommands():
     return value
 
 cmd = getTestSerialCommands()
+'''
 
+cmd = '007,'
 with serial.Serial(DEFAULT_ARDUINO_PORT, 9600) as arduinoPort:
     arduinoPort.write(bytes(cmd, 'utf-8'))
     while True:
@@ -69,8 +71,3 @@ with serial.Serial(DEFAULT_ARDUINO_PORT, 9600) as arduinoPort:
             print(f'From arduino: {output.decode("utf-8")}')
             time.sleep(0.5)
 
-<<<<<<< HEAD
->>>>>>> 073a191 (Initial arduino infrastructure, going to test on dev unit)
-=======
->>>>>>> 416731f (Initial arduino infrastructure, going to test on dev unit)
->>>>>>> 862fc7c (Initial arduino infrastructure, going to test on dev unit)

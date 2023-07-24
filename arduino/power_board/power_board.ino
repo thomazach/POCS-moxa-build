@@ -1,5 +1,16 @@
+int reboot = 0;
+String cmd;
+void setup(){
+    Serial.begin(9600);
+    Serial.setTimeout(5);
+    delay(2000)
+}
 
-  cmd = Serial.readString();
+void loop() {
+
+  while (Serial.available() > 0){
+    cmd = Serial.readStringUntil(',').toInt()
+  }
   Serial.println(cmd);
 /*
   switch (cmd){
@@ -14,5 +25,5 @@
       reboot += 1;
   }
   */
-  delay(1000);
+  delay(100);
 }
