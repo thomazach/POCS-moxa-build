@@ -1,5 +1,5 @@
 int reboot = 0;
-String cmd;
+int cmd;
 void setup(){
     Serial.begin(9600);
     Serial.setTimeout(5);
