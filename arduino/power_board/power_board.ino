@@ -5,6 +5,7 @@ void setup(){
 }
 
 void loop() {
-  Serial.println("Test message!");
-  delay(5000);
+  String test = Serial.readStringUntil("!");
+  Serial.println(test);
+  delay(2000);
 }
