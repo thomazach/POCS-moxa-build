@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 // Power distribution board manual: https://www.infineon.com/dgdl/Infineon-24V_ProtectedSwitchShield_with_Profet+24V_for_Arduino_UsersManual_10.pdf-UserManual-v01_01-EN.pdf?fileId=5546d46255dd933d0156074933e91fe2
 // Wilfred's variables for pin assignments, based off/copied from https://github.com/panoptes/POCS/blob/develop/resources/arduino/PowerBoard/PowerBoard.ino as of 7/25/2023
 
@@ -180,3 +181,31 @@ void sendCurrentData(){
   Serial.println();
 
 }
+=======
+int reboot = 0;
+String cmd;
+void setup(){
+    Serial.begin(9600);
+    Serial.setTimeout(1);
+}
+
+void loop() {
+
+  cmd = Serial.readString();
+  Serial.print(cmd);
+/*
+  switch (cmd){
+    case 'heartbeat':
+      reboot = 0;
+      continue
+    case '':
+      if (reboot > 1800){
+        Serial.println("Time out reached!")
+        // toggle main processors power
+      }
+      reboot += 1;
+  }
+  */
+  delay(1000);
+}
+>>>>>>> 073a191 (Initial arduino infrastructure, going to test on dev unit)

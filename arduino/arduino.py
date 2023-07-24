@@ -1,5 +1,6 @@
 import serial
 import time
+<<<<<<< HEAD
 import threading
 
 DEFAULT_ARDUINO_PORT = '/dev/ttyACM0'
@@ -48,3 +49,24 @@ with serial.Serial(DEFAULT_ARDUINO_PORT, 9600, timeout=5) as arduinoPort:
             time.sleep(1)
             cmd = getTestSerialCommands()
             arduinoPort.write(cmd)
+=======
+
+DEFAULT_ARDUINO_PORT = '/dev/ttyACM0'
+
+def getTestSerialCommands():
+    pin_num = input("Enter pin number:")
+    state = input("Enter on or off:")
+    value = f"{pin_num},{state}"
+    return bytes(value)
+
+while True:
+
+    cmd = getTestSerialCommands()
+
+    with serial.Serial(DEFAULT_ARDUINO_PORT, 9600) as arduinoPort:
+        arduinoPort.write(cmd)
+        time.sleep(3)
+        output = arduinoPort.readline()
+        print(f"From arduino: {output}")
+
+>>>>>>> 073a191 (Initial arduino infrastructure, going to test on dev unit)
