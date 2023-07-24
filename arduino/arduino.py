@@ -15,7 +15,7 @@ cmd = getTestSerialCommands()
 
 cmd = '<1, 0>'
 with serial.Serial(DEFAULT_ARDUINO_PORT, 9600) as arduinoPort:
-    arduinoPort.write(bytes(cmd, 'utf-8'))
+    arduinoPort.write(cmd.encode('utf-8'))
     while True:
             output = arduinoPort.readline().decode("utf-8")
             print(f'From arduino: {output}')
