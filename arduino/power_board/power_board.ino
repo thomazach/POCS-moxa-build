@@ -1,6 +1,6 @@
 
   cmd = Serial.readString();
-  Serial.print(cmd);
+  Serial.println(cmd);
 /*
   switch (cmd){
     case 'heartbeat':
