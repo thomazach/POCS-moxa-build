@@ -1,7 +1,6 @@
 
-  //cmd = Serial.readString();
-  //Serial.println(cmd);
-  Serial.println("Example data from arduino :)");
+  cmd = Serial.readString();
+  Serial.println(cmd);
 /*
   switch (cmd){
     case 'heartbeat':
