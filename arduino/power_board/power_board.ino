@@ -5,7 +5,10 @@ void setup(){
 }
 
 void loop() {
-  String test = Serial.readStringUntil("!");
-  Serial.println(test);
-  delay(2000);
+  readSerial();
+}
+
+void readSerial() {
+  char currentChar = Serial.read();
+  Serial.println(currentChar);
 }
