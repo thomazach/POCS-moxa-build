@@ -208,4 +208,8 @@ void loop() {
   */
   delay(1000);
 }
+<<<<<<< HEAD
 >>>>>>> 073a191 (Initial arduino infrastructure, going to test on dev unit)
+=======
+>>>>>>> 416731f (Initial arduino infrastructure, going to test on dev unit)
+>>>>>>> 862fc7c (Initial arduino infrastructure, going to test on dev unit)
