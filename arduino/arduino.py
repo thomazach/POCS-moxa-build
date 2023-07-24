@@ -56,7 +56,7 @@ DEFAULT_ARDUINO_PORT = '/dev/ttyACM0'
 def getTestSerialCommands():
     pin_num = input("Enter pin number:")
     state = input("Enter on or off:")
-    value = f"{pin_num},{state}"
+    value = f"{pin_num},{state}".encode("utf-8")
     return bytes(value)
 
 while True:
