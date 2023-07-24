@@ -6,10 +6,13 @@ void setup(){
 
 void loop() {
   readSerial();
-  delay(100);
 }
 
 void readSerial() {
-  char currentChar = Serial.read();
-  Serial.println(currentChar);
+  char currentChar;
+  if (Serial.available()){
+    currentChar = Serial.read()
+    Serial.println(currentChar);
+  }
+  
 }
