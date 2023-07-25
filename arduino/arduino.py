@@ -16,5 +16,5 @@ with serial.Serial(DEFAULT_ARDUINO_PORT, 9600, timeout=5) as arduinoPort:
     time.sleep(5)
     arduinoPort.write(cmd)
     while True:
-            output = arduinoPort.readline()
+            output = arduinoPort.readline().decode('utf-8')
             print(output)
