@@ -1,21 +1,20 @@
-int maxChars = 32;
-char data[32];
+const int maxChars = 32;
+char data[maxChars];
 
 void setup(){
     Serial.begin(9600);
     Serial.setTimeout(5);
-    delay(2000);
+    delay(10);
 }
 
 void loop() {
   readSerial();
   if (sizeof(data) != 0) {
-    for (int i = 0; i <= sizeof(data); i++){
-      Serial.print(data[i]);
-    }
-    Serial.println("");
+    char buffer[sizeof(data)];
+    sprintf(data, "%s", data);
+    Serial.println(data);
   }
-
+  Serial.println("stayin' alive");
 
 }
 
