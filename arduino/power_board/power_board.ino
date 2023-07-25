@@ -23,7 +23,7 @@ void readSerial() {
   int i = 0;
   bool recievingSerial = false;
 
-  while (Serial.available()){
+  while (Serial.available() > 0){
     Serial.println("In read while loop");
     currentChar = Serial.read();
 
@@ -37,7 +37,8 @@ void readSerial() {
     else {
       i = 0;
       recievingSerial = false;
+      break;
     }
   }
-  
+
 }
