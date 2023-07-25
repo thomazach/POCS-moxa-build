@@ -1,6 +1,6 @@
 // Power distribution board manual: https://www.infineon.com/dgdl/Infineon-24V_ProtectedSwitchShield_with_Profet+24V_for_Arduino_UsersManual_10.pdf-UserManual-v01_01-EN.pdf?fileId=5546d46255dd933d0156074933e91fe2
 // Wilfred's variables for pin assignments, based off/copied from https://github.com/panoptes/POCS/blob/develop/resources/arduino/PowerBoard/PowerBoard.ino as of 7/25/2023
-
+py
 // Meanwell UPS AC and Battery pins
 const int AC_OK = 11;
 const int BAT_LOW = 12;
@@ -89,6 +89,7 @@ void loop() {
   }
   else if (haveNewCmd == true){
     execute_command();
+    haveNewCmd = false;
   }
   delay(100);
 }
@@ -113,6 +114,7 @@ void readSerial() {
       recievingCmd = false;
       haveNewCmd = true;
       Serial.println(command);
+      Serial.flush();
       break;
     }
   }
