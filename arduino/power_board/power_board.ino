@@ -35,5 +35,4 @@ void readSerial() {
       break;
     }
   }
-
 }
