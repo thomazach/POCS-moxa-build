@@ -27,14 +27,11 @@ void readSerial() {
       i++;
     }
     else {
+      command[i] = '\0';
       i = 0;
       recievingCmd = false;
     }
   }
 
-  for (int i = 0; i < sizeof(command); i++){
-    Serial.print(command[i]);
-  } 
-  Serial.println();
-  char command[maxChars];
+  Serial.println(command);
 }
