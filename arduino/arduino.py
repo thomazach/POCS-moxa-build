@@ -26,12 +26,15 @@ RELAY_4 ---> Mount
 
 def getTestSerialCommands():
     command = input(">>")
-    value = f'<{command}>'
-    return value.encode("utf-8")
+    if command != '':
+        value = f'<{command}>'
+        return value.encode("utf-8")
+    else:
+        getTestSerialCommands()
 
 def listen(port):
     i = 0
-    while i < 6:
+    while i < 2:
         output = port.readline().decode('utf-8')
         print(output)
         i = i + 1
