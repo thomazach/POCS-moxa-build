@@ -80,7 +80,7 @@ void setup(){
   digitalWrite(RELAY_2, HIGH);
   digitalWrite(RELAY_3, HIGH);
   digitalWrite(RELAY_4, HIGH);
-  Serial.println("<Arduino is ready!>");
+  Serial.println("|r#|");
 }
 
 void loop() {

@@ -24,7 +24,6 @@ RELAY_3 ---> Cameras
 RELAY_4 ---> Mount
 '''
 
-
 def getTestSerialCommands():
     command = input(">>")
     value = f'<{command}>'
@@ -44,6 +43,6 @@ with serial.Serial(DEFAULT_ARDUINO_PORT, 9600, timeout=5) as arduinoPort:
     arduinoPort.write(cmd)
     while True:
             listen(arduinoPort)
-            time.sleep(5)
+            time.sleep(1)
             cmd = getTestSerialCommands()
             arduinoPort.write(cmd)
