@@ -30,8 +30,8 @@ void readSerial() {
       command[i] = '\0';
       i = 0;
       recievingCmd = false;
+      Serial.println(command);
     }
   }
 
-  Serial.println(command);
 }
