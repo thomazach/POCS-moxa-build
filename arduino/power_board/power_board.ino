@@ -5,7 +5,7 @@ void setup(){
   Serial.begin(9600);
   Serial.setTimeout(5);
   delay(2000);
-  Serial.println("<Arduino is ready!>")
+  Serial.println("<Arduino is ready!>");
 }
 
 void loop() {
