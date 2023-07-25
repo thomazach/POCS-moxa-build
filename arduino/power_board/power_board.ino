@@ -1,5 +1,5 @@
-
-String message = "Motor 1 off";
+const int maxChars = 32;
+char command[maxChars];
 
 void setup(){
   Serial.begin(9600);
@@ -9,16 +9,29 @@ void setup(){
 
 void loop() {
   readSerial();
-  Serial.println(message);
   delay(100);
 }
 
 void readSerial() {
   char currentChar;
+  bool recievingCmd = false;
+  int i = 0;
+
   while (Serial.available() > 0){
     currentChar = Serial.read();
-    if (currentChar == byte('<')){
-      message = "Motor 1 on";
+    if (currentChar == byte('<') && recievingCmd == false){
+      recievingCmd = true;
+    }
+    else if (currentChar != byte('>') && recievingCmd == true && i < maxChars){
+      command[i] = currentChar;
+      i++;
+    }
+    else {
+      i = 0;
+      recievingCmd = false;
     }
   }
+
+  for (int i = 0; i < sizeof(command); i++) Serial.print(command[i]);
+  Serial.println();
 }
