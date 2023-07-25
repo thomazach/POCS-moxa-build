@@ -60,6 +60,6 @@ with serial.Serial(DEFAULT_ARDUINO_PORT, 9600, timeout=5) as arduinoPort:
     arduinoPort.write(cmd)
     while True:
             listen(arduinoPort)
-            time.sleep(5)
+            time.sleep(1)
             cmd = getTestSerialCommands()
             arduinoPort.write(cmd)
