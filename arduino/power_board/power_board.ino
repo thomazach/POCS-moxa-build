@@ -139,26 +139,16 @@ void execute_command(){
   else if (switchCmd == 2){
     sendCurrentData();
   }
-  //switch (switchCmd){
-  //  case 0:
-  //    relayIdx = atoi(strIdx);
-  //    turnRelayOff(relayIdx);
-  //  case 1:
-  //    relayIdx = atoi(strIdx);
-  //    turnRelayOn(relayIdx);
-  //  case 2:
-  //    sendCurrentData();
-  //}
 }
 
 // Command functions
 void turnRelayOn(int relayIndex){
-  //digitalWrite(relayArray[relayIndex], HIGH);
+  digitalWrite(relayArray[relayIndex], HIGH);
   Serial.println("|on#|");
 }
 
 void turnRelayOff(int relayIndex){
-  //digitalWrite(relayArray[relayIndex], LOW);
+  digitalWrite(relayArray[relayIndex], LOW);
   Serial.println("|off#|");
 }
 
