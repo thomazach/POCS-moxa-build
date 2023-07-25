@@ -32,7 +32,7 @@ void readSerial() {
       i = 0;
       recievingCmd = false;
       Serial.println(command);
-      break
+      break;
     }
   }
 
