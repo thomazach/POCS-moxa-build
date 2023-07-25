@@ -10,9 +10,8 @@ void setup(){
 void loop() {
   readSerial();
   if (sizeof(data) != 0) {
-    char buffer[sizeof(data)];
-    sprintf(data, "%s", data);
-    Serial.println(data);
+    String message = String(data);
+    Serial.println(message);
   }
   Serial.println("main loop complete");
 
