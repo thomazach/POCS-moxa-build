@@ -34,7 +34,7 @@ def getTestSerialCommands():
 
 def listen(port):
     i = 0
-    while i < 6:
+    while i < 2:
         output = port.readline().decode('utf-8')
         print(output)
         i = i + 1
