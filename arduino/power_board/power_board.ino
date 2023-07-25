@@ -1,6 +1,6 @@
 // Power distribution board manual: https://www.infineon.com/dgdl/Infineon-24V_ProtectedSwitchShield_with_Profet+24V_for_Arduino_UsersManual_10.pdf-UserManual-v01_01-EN.pdf?fileId=5546d46255dd933d0156074933e91fe2
 // Wilfred's variables for pin assignments, based off/copied from https://github.com/panoptes/POCS/blob/develop/resources/arduino/PowerBoard/PowerBoard.ino as of 7/25/2023
-py
+
 // Meanwell UPS AC and Battery pins
 const int AC_OK = 11;
 const int BAT_LOW = 12;
@@ -113,8 +113,6 @@ void readSerial() {
       i = 0;
       recievingCmd = false;
       haveNewCmd = true;
-      Serial.println(command);
-      Serial.flush();
       break;
     }
   }
@@ -129,16 +127,28 @@ void execute_command(){
   strIdx = strtok(NULL, ",");
 
   int relayIdx;
-  switch (switchCmd){
-    case 0:
-      relayIdx = atoi(strIdx);
-      turnRelayOff(relayIdx);
-    case 1:
-      relayIdx = atoi(strIdx);
-      turnRelayOn(relayIdx);
-    case 2:
-      sendCurrentData();
+
+  if (switchCmd == 0){
+    relayIdx = atoi(strIdx);
+    turnRelayOff(relayIdx);
   }
+  else if (switchCmd == 1){
+    relayIdx = atoi(strIdx);
+    turnRelayOn(relayIdx);
+  }
+  else if (switchCmd == 2){
+    sendCurrentData();
+  }
+  //switch (switchCmd){
+  //  case 0:
+  //    relayIdx = atoi(strIdx);
+  //    turnRelayOff(relayIdx);
+  //  case 1:
+  //    relayIdx = atoi(strIdx);
+  //    turnRelayOn(relayIdx);
+  //  case 2:
+  //    sendCurrentData();
+  //}
 }
 
 // Command functions
