@@ -1,5 +1,6 @@
 import serial
 import time
+import threading
 
 DEFAULT_ARDUINO_PORT = '/dev/ttyACM0'
 
@@ -29,15 +30,19 @@ def getTestSerialCommands():
     value = f'<{command}>'
     return value.encode("utf-8")
 
+def listen(port):
+     while True:
+        output = port.readline().decode('utf-8')
+        print(output)
+
 cmd = getTestSerialCommands()
 
 with serial.Serial(DEFAULT_ARDUINO_PORT, 9600, timeout=5) as arduinoPort:
+    threading.Thread(target=listen, args=[arduinoPort])
     time.sleep(5)
     arduinoPort.write(cmd)
     while True:
-            output = arduinoPort.readline().decode('utf-8')
-            print(output)
+            time.sleep(5)
             cmd = getTestSerialCommands()
             arduinoPort.write(cmd)
-            time.sleep(2)
 
