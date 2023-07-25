@@ -1,4 +1,4 @@
-const int maxChars = 32;
+const int maxChars = 10;
 char command[maxChars];
 
 void setup(){
@@ -32,6 +32,9 @@ void readSerial() {
     }
   }
 
-  for (int i = 0; i < sizeof(command); i++) Serial.print(command[i]);
+  for (int i = 0; i < sizeof(command); i++){
+    Serial.print(command[i]);
+  } 
   Serial.println();
+  char command[maxChars];
 }
