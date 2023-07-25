@@ -47,4 +47,3 @@ with serial.Serial(DEFAULT_ARDUINO_PORT, 9600, timeout=5) as arduinoPort:
             time.sleep(5)
             cmd = getTestSerialCommands()
             arduinoPort.write(cmd)
-
