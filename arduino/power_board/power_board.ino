@@ -80,7 +80,7 @@ void setup(){
   digitalWrite(RELAY_2, HIGH);
   digitalWrite(RELAY_3, HIGH);
   digitalWrite(RELAY_4, HIGH);
-  Serial.println("|r#|");
+  Serial.println("|r|");
 }
 
 void loop() {
@@ -144,12 +144,12 @@ void execute_command(){
 // Command functions
 void turnRelayOn(int relayIndex){
   digitalWrite(relayArray[relayIndex], HIGH);
-  Serial.println("|on#|");
+  Serial.println("|#|");
 }
 
 void turnRelayOff(int relayIndex){
   digitalWrite(relayArray[relayIndex], LOW);
-  Serial.println("|off#|");
+  Serial.println("|#|");
 }
 
 void sendCurrentData(){
