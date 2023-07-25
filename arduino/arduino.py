@@ -13,9 +13,9 @@ def getTestSerialCommands():
 cmd = getTestSerialCommands()
 '''
 
-cmd = "<off, 1><give_temps>"
-with serial.Serial(DEFAULT_ARDUINO_PORT, 9600) as arduinoPort:
-    arduinoPort.write(cmd.encode('utf-8'))
+cmd = b'<off, 1><give_temps>'
+with serial.Serial(DEFAULT_ARDUINO_PORT, 9600, rtscts=True) as arduinoPort:
+    arduinoPort.write(cmd)
     while True:
             output = arduinoPort.readline().decode("utf-8")
-            arduinoPort.write(cmd.encode('utf-8'))
+            arduinoPort.write(cmd)
