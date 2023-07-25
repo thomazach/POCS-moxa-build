@@ -13,10 +13,9 @@ def getTestSerialCommands():
 cmd = getTestSerialCommands()
 '''
 
-cmd = '1,1,1,1,0'
+cmd = b'<'
 with serial.Serial(DEFAULT_ARDUINO_PORT, 9600, timeout=5) as arduinoPort:
-    arduinoPort.write(bytes(cmd, 'utf-8'))
+    arduinoPort.write(cmd)
     while True:
-            time.sleep(1)
             output = arduinoPort.readline()
             print(output)
