@@ -14,16 +14,18 @@ void loop() {
     sprintf(data, "%s", data);
     Serial.println(data);
   }
-  Serial.println("stayin' alive");
+  Serial.println("main loop complete");
 
 }
 
 void readSerial() {
+  Serial.println("in readSerial");
   int currentChar;
   int i = 0;
   bool recievingSerial = false;
 
   while (Serial.available()){
+    Serial.println("In read while loop");
     currentChar = Serial.read();
 
     if (currentChar == byte('<') && recievingSerial == false) {
