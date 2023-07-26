@@ -45,23 +45,34 @@ def take_observation(cameraSettings, iso=1):
         raise Exception("Bad observation data: num_captures must be a positive non-zero integer")
     i = num_captures
     while True:
-        if i == 0:
+        # UNCOMMENT ALL subprocess.run LINES IN PRODUCTION
+        if num_captures == 0:
             break
+        
+        # Clear the camera's RAM to allow for back to back large exposures (tested on 120s)
+        cmdClearRAM = f"gphoto2 --port {camera_path} --set-config imageformat=0".split(' ')
+        #subprocess.run(cmdClearRAM)
+        cmdClearRAM = f"gphoto2 --port {camera_path} --set-config imageformat=9".split(' ')
+        #subprocess.run(cmdClearRAM)
+        
+        cmdArgs = f"gphoto2 --port {camera_path} --set-config iso={iso} --filename {directoryPath}/{observation_dir}/{cam_type}/astro_image_{num_captures}.cr2 --set-config-index shutterpseed=0 --wait-event=1s --set-config-index eosremoterelease=2 --wait-event={exposure_time}s --set-config-index eosremoterelease=4 --wait-event-and-download=2s".split(' ')
+        #subprocess.run(cmdArgs)
 
-        cmdArgs = f"gphoto2 --port {camera_path} --set-config iso={iso} --filename {directoryPath}/{observation_dir}/{cam_type}/astro_image_{num_captures - i}.cr2 --set-config-index shutterspeed=0 --wait-event=1s --set-config-index eosremoterelease=2 --wait-event={exposure_time}s --set-config-index eosremoterelease=4 --wait-event-and-download=2s".split(' ')
-        subprocess.run(cmdArgs)
+        # REMOVE IN PRODUCTION, TEST PRINT SINCE ON WINDOWS
+        print(cmdArgs)
 
-        i -= 1
+        num_captures -= 1
 
 def initialize_observation(current_target_object):
+    # UNCOMMENT ALL subprocess.run LINES IN PRODUCTION
 
     format = "%Y-%m-%dT%H:%M:%S"
     timezone = datetime.timezone.utc
     time_and_date = datetime.datetime.now(tz=timezone).strftime(format)
 
     directoryPath=os.path.dirname(os.path.abspath(__file__)).replace('cameras', 'images')
-    cmdMakeObservationDirectory = f"mkdir {time_and_date}; mkdir {time_and_date}/Primary_Cam; mkdir {time_and_date}/Secondary_Cam"
-    subprocess.Popen(cmdMakeObservationDirectory, shell=True, cwd=directoryPath)
+    cmdMakeObservationDirectory = f"cd {directoryPath}; mkdir {time_and_date}; cd {time_and_date}; mkdir 'Primary_Cam'; mkdir 'Secondary_Cam'".split(' ')
+    #subprocess.run(cmdMakeObservationDirectory)
 
     primary_camera_path, secondary_camera_path = get_camera_paths()
     primary_camera = ('Primary_Cam', primary_camera_path)
@@ -77,7 +88,7 @@ def initialize_observation(current_target_object):
     if current_target_object.camera_settings['secondary_cam']['take_images']:
         secondary_cam_process = multiprocessing.Process(target=take_observation, args=([cameraSettingsSecondary]))
         secondary_cam_process.start()
-
+    
     return primary_cam_process, secondary_cam_process
 
 def main():
