@@ -75,6 +75,7 @@ def main():
 
     _writeToFile(WEATHER_RESULTS_TXT, 'go')
     _writeToFile(WEATHER_RESULTS_TXT, 'true') # Temporarily need to bypass weather module until panoptes team figures out solution for weather sensor
+
     while True: 
         
         time.sleep(3)
