@@ -3,6 +3,7 @@ import threading
 import heapq
 import time
 import random
+import pickle
 from observational_scheduler import obs_scheduler
 
 WEATHER_RESULTS_TXT = 'weather_results.txt'
@@ -38,7 +39,8 @@ def main():
                 if not checkTargetAvailability(target_queue[0].position):
                     continue
                 target = heapq.heappop(target_queue)
-                # tell mount controller target
+                with open('pickle/current_target.pickle', 'wb') as pipe:
+                    pickle.dump(target, pipe)
                 # wait for mount to say complete
                 # get data from camera
                 # ask storage if full 
