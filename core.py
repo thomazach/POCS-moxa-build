@@ -8,8 +8,7 @@ import pickle
 from observational_scheduler import obs_scheduler
 
 WEATHER_RESULTS_TXT = 'weather_results.txt'
-TARGETS_FILE_PATH = 'conf_files/test_fields.yaml'
-
+TARGETS_FILE_PATH = 'observational_scheduler/mockData.yaml'
 random.seed(time.time_ns)
 
 yesOrNo = lambda x: x == 'y' or x == 'Y' or x == 'yes' or x == 'Yes'
@@ -64,18 +63,7 @@ def checkTargetAvailability(target):
     return True
 
 def main():
-
-    keepGettingObservations = True
-    observationsDict = {}
-    while keepGettingObservations:
-        name = str(input('Name of the observation: '))
-        attributes = makeObservationDict()
-        observationsDict[name] = attributes
-        keepGettingObservations = yesOrNo(input('Add another observation [y/n]: '))
-    obs_scheduler.createObservationList(observationsDict)
-
-    _writeToFile(WEATHER_RESULTS_TXT, 'go')
-    _writeToFile(WEATHER_RESULTS_TXT, 'true') # Temporarily need to bypass weather module until panoptes team figures out solution for weather sensor
+    writeToFile(WEATHER_RESULTS_TXT, 'go')
     while True: 
         
         time.sleep(3)
@@ -89,9 +77,6 @@ def main():
                 if not checkTargetAvailability(target.position):
                     continue
                 # tell mount controller target
-                with open("pickle/current_target.pickle", "wb") as pickleFile:
-                    pickle.dump(target, pickleFile)
-                os.system('python mount/mount_control.py')
                 # wait for mount to say complete
                 while True:
                     time.sleep(30)
