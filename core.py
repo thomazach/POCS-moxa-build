@@ -89,9 +89,6 @@ def main():
                 if not checkTargetAvailability(target.position):
                     continue
                 # tell mount controller target
-                with open("pickle/current_target.pickle", "wb") as pickleFile:
-                    pickle.dump(target, pickleFile)
-                os.system('python mount/mount_control.py')
                 # wait for mount to say complete
                 while True:
                     time.sleep(30)
