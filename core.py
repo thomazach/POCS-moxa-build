@@ -38,8 +38,9 @@ def main():
             target_queue = obs_scheduler.getTargetQueue(TARGETS_FILE_PATH)
             while target_queue != []:
                 target = heapq.heappop(target_queue)
-                with open('pickle/current_target.pickle', 'wb') as pipe:
-                    pickle.dump(target, pipe)
+                # tell mount controller target
+                with open("pickle/current_target.pickle", "wb") as pickleFile:
+                    pickle.dump(target, pickleFile)
                 # wait for mount to say complete
                 while True:
                     time.sleep(30)
