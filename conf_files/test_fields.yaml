@@ -49,3 +49,18 @@ Sirius:
       take_images: False
       num_captures: -1
       exposure_time: 0
+developer_test:
+  user_note: |
+    Not meant for production or real observation. Development tool for testing communication.
+  priority: 1
+  ra: 00 00 00
+  dec: -11 11 11.1
+  cmd: take images
+  primary_cam: 
+      take_images: True
+      num_captures: 4
+      exposure_time: 60
+  secondary_cam:
+      take_images: True
+      num_captures: 2
+      exposure_time: 120
