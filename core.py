@@ -63,8 +63,18 @@ def checkTargetAvailability(target):
     return True
 
 def main():
-    writeToFile(WEATHER_RESULTS_TXT, 'go')
-    writeToFile(WEATHER_RESULTS_TXT, 'true') # Temporarily need to bypass weather module until panoptes team figures out solution for weather sensor
+
+    keepGettingObservations = True
+    observationsDict = {}
+    while keepGettingObservations:
+        name = str(input('Name of the observation: '))
+        attributes = makeObservationDict()
+        observationsDict[name] = attributes
+        keepGettingObservations = yesOrNo(input('Add another observation [y/n]: '))
+    obs_scheduler.createObservationList(observationsDict)
+
+    _writeToFile(WEATHER_RESULTS_TXT, 'go')
+    _writeToFile(WEATHER_RESULTS_TXT, 'true') # Temporarily need to bypass weather module until panoptes team figures out solution for weather sensor
     while True: 
         
         time.sleep(3)
