@@ -7,7 +7,7 @@ import pickle
 from observational_scheduler import obs_scheduler
 
 WEATHER_RESULTS_TXT = 'weather_results.txt'
-TARGETS_FILE_PATH = 'observational_scheduler/mockData.yaml'
+TARGETS_FILE_PATH = 'conf_files/test_fields.yaml'
 random.seed(time.time_ns)
 def writeToFile(PATH, msg):
     file_write = open(PATH, "w")
@@ -21,11 +21,12 @@ def readWeatherResults(PATH):
     return weather_results
 
 def checkTargetAvailability(target):
-    value = random.randint(0, 10)
-    return value < 5
+    # Moon avoidance
+    return True
 
 def main():
     writeToFile(WEATHER_RESULTS_TXT, 'go')
+    writeToFile(WEATHER_RESULTS_TXT, 'true') # Temporarily need to bypass weather module until panoptes team figures out solution for weather sensor
     while True: 
         
         time.sleep(3)
@@ -39,8 +40,9 @@ def main():
                 if not checkTargetAvailability(target_queue[0].position):
                     continue
                 target = heapq.heappop(target_queue)
-                with open('pickle/current_target.pickle', 'wb') as pipe:
-                    pickle.dump(target, pipe)
+                # tell mount controller target
+                with open("pickle/current_target.pickle", "wb") as pickleFile:
+                    pickle.dump(target, pickleFile)
                 # wait for mount to say complete
                 # get data from camera
                 # ask storage if full 
@@ -57,8 +59,6 @@ def main():
 
             # Things aren't safe so the mount needs to be told to cry
             # break
-
-
 
 if __name__ == "__main__":
     main()

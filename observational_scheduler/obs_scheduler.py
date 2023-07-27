@@ -40,6 +40,7 @@ def getTargetQueue(PATH):
         prio = entry['priority']
         position = {'ra': entry['ra'], 'dec' :entry['dec']}
         camera_settings = {'primary_cam' : entry['primary_cam'], 'secondary_cam' : entry['secondary_cam']}
+        command = entry['cmd']
 
-        heapq.heappush(pQueue, target(name, position, camera_settings, priority=prio, observation_notes=obs_note))
+        heapq.heappush(pQueue, target(name, position, camera_settings, priority=prio, observation_notes=obs_note, command=command))
     return pQueue
