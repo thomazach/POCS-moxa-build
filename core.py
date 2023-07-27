@@ -9,8 +9,10 @@ from observational_scheduler import obs_scheduler
 
 WEATHER_RESULTS_TXT = 'weather_results.txt'
 TARGETS_FILE_PATH = 'conf_files/test_fields.yaml'
+
 random.seed(time.time_ns)
-def writeToFile(PATH, msg):
+
+def _writeToFile(PATH, msg):
     file_write = open(PATH, "w")
     file_write.write(msg)
     file_write.close()
@@ -26,8 +28,8 @@ def checkTargetAvailability(target):
     return True
 
 def main():
-    writeToFile(WEATHER_RESULTS_TXT, 'go')
-    writeToFile(WEATHER_RESULTS_TXT, 'true') # Temporarily need to bypass weather module until panoptes team figures out solution for weather sensor
+    _writeToFile(WEATHER_RESULTS_TXT, 'go')
+    _writeToFile(WEATHER_RESULTS_TXT, 'true') # Temporarily need to bypass weather module until panoptes team figures out solution for weather sensor
     while True: 
         
         time.sleep(3)
@@ -61,7 +63,7 @@ def main():
                 #   else upload or store picture in storage method
 
             # when it is safe to go we need to send 
-            writeToFile(WEATHER_RESULTS_TXT, 'exit')
+            _writeToFile(WEATHER_RESULTS_TXT, 'exit')
             break
         else:
             print('not safe')
