@@ -19,6 +19,9 @@ def _writeToFile(PATH, msg):
     file_write.close()
 
 def makeObservationDict():
+
+    #TODO: Handle bad inputs
+
     def _makeCameraArr():
         camera = {}
         camera['num_captures'] = None
@@ -47,9 +50,6 @@ def makeObservationDict():
     attributes['primary_cam'] = primaryCam
     attributes['secondary_cam'] = secondaryCam
     return attributes
-
-
-    
 
 
 def readWeatherResults(PATH):
