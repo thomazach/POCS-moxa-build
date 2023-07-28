@@ -1,4 +1,5 @@
 import sys
+import os
 import threading
 import heapq
 import time
@@ -36,14 +37,25 @@ def main():
             print('Safe to use')
             target_queue = obs_scheduler.getTargetQueue(TARGETS_FILE_PATH)
             while target_queue != []:
-                # target = heapq.heappop(target_queue)
-                if not checkTargetAvailability(target_queue[0].position):
-                    continue
                 target = heapq.heappop(target_queue)
+                if not checkTargetAvailability(target.position):
+                    continue
                 # tell mount controller target
                 with open("pickle/current_target.pickle", "wb") as pickleFile:
                     pickle.dump(target, pickleFile)
+                os.system('python mount/mount_control.py')
                 # wait for mount to say complete
+                counter = 0
+                while True:
+                    time.sleep(30)
+                    with open("pickle.current_target.pickle", "rb") as f:
+                        target = pickle.load(f)
+                    
+                    # TODO: Add safety feature that sends the mount the emergency park command if this loop has ran 10+ min longer than expected observation time (could also send raw serial)
+
+                    if target.cmd == 'observation complete':
+                        break
+
                 # get data from camera
                 # ask storage if full 
                 #   if full handle or notify somehow
