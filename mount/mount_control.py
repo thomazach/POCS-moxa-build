@@ -213,6 +213,9 @@ def main():
                 case 'close mount serial port':
                     mount_port.close()
                     sendTargetObjectCommand(current_target, 'stopped mount serial')
+
+                case 'observation complete':
+                    break
                 
                 case _:
                     continue
