@@ -33,17 +33,16 @@ def getTestSerialCommands():
         getTestSerialCommands()
 
 def listen(port):
-    i = 0
-    while i < 2:
-        output = port.readline().decode('utf-8')
-        print(output)
-        i = i + 1
+    output = port.readline().decode('utf-8')
+    print(output)
 
 cmd = getTestSerialCommands()
 
 with serial.Serial(DEFAULT_ARDUINO_PORT, 9600, timeout=5) as arduinoPort:
     time.sleep(5)
     arduinoPort.write(cmd)
+    time.sleep(2)
+    listen(arduinoPort)
     while True:
             listen(arduinoPort)
             time.sleep(1)
