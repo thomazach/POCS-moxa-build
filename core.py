@@ -12,10 +12,46 @@ TARGETS_FILE_PATH = 'conf_files/test_fields.yaml'
 
 random.seed(time.time_ns)
 
+yesOrNo = lambda x: x == 'y' or x == 'Y' or x == 'yes' or x == 'Yes'
+
 def _writeToFile(PATH, msg):
     file_write = open(PATH, "w")
     file_write.write(msg)
     file_write.close()
+
+def makeObservationDict():
+    def _makeCameraArr():
+        camera = {}
+        camera['num_captures'] = None
+        camera['exposure_time'] = None
+        camera['take_images'] = yesOrNo(input('Do you want this camera to take images [y/n]: '))
+        if camera['take_images']:
+            camera['num_captures'] = int(input('Enter # of images to capture: ') or 1)
+            camera['exposure_time'] = int(input('Enter exposure time per image in seconds: ') or 1)
+        return camera
+
+    note = str(input('Enter user note [leave blank if none]: ') or None)
+    priority = int(input('Input the priority of the observation \nas a positive whole number: ') or 0)
+    ra = str(input('Input the ra: ') or '00 42 44')
+    dec = str(input('Input the dec: ') or '+41 16 09')
+    cmd = str(input('Input the command [leave blank for slew]: ') or 'slew to target')
+    print('Primary Camera Settings: \n')
+    primaryCam = _makeCameraArr()
+    print('Secondary Camera Settings: \n')
+    secondaryCam = _makeCameraArr()
+    attributes = {}
+    attributes['note'] = note
+    attributes['priority'] = priority
+    attributes['ra'] = ra
+    attributes['dec'] = dec
+    attributes['cmd'] = cmd
+    attributes['primary_cam'] = primaryCam
+    attributes['secondary_cam'] = secondaryCam
+    return attributes
+
+
+    
+
 
 def readWeatherResults(PATH):
     weather_results_file_object = open(PATH, 'r')
@@ -28,6 +64,16 @@ def checkTargetAvailability(target):
     return True
 
 def main():
+
+    keepGettingObservations = True
+    observationsDict = {}
+    while keepGettingObservations:
+        name = str(input('Name of the observation: '))
+        attributes = makeObservationDict()
+        observationsDict[name] = attributes
+        keepGettingObservations = yesOrNo(input('Add another observation [y/n]: '))
+    obs_scheduler.createObservationList(observationsDict)
+
     _writeToFile(WEATHER_RESULTS_TXT, 'go')
     _writeToFile(WEATHER_RESULTS_TXT, 'true') # Temporarily need to bypass weather module until panoptes team figures out solution for weather sensor
     while True: 
