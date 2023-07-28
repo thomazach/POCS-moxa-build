@@ -45,7 +45,6 @@ def main():
                     pickle.dump(target, pickleFile)
                 os.system('python mount/mount_control.py')
                 # wait for mount to say complete
-                counter = 0
                 while True:
                     time.sleep(30)
                     with open("pickle.current_target.pickle", "rb") as f:
@@ -60,8 +59,6 @@ def main():
                 # ask storage if full 
                 #   if full handle or notify somehow
                 #   else upload or store picture in storage method
-                # remove target from queue
-
 
             # when it is safe to go we need to send 
             writeToFile(WEATHER_RESULTS_TXT, 'exit')
