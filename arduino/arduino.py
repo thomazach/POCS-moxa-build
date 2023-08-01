@@ -97,7 +97,7 @@ def listen(port):
             print("Arduino setup complete. Ready for commands.")
             return True
         
-    elif output.count("|") != 2:
+    elif output.count("|") != 0 and output.count("|") != 2:
         print('WARNING: Arduino serial communication error. Expected command response within two "|" characters.')
     
     else:
