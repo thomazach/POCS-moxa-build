@@ -75,10 +75,10 @@ The camera module uses the [gphoto2](http://gphoto.org/) command line interface 
 #### `arduino`
 The arduino module uses pyserial to start direct serail communication. The arduino module is run in a permenant loop, since connecting to an arduino with pyserial will restart it, causing the setup() function to run which can cause unwanted behavior. On the python side, the arduino repeatedly checks the `arduino_cmd.pickle` file for new commands from other modules or users in the custom shell. It then processes the entered command into a serial command code (integer), puts appropriate start and end characters, and sends it to the arduino. On the arduino side, it recieves this command, executes it, and returns a success code or the requested data with start and end characters. The response is then written to the pickle file. The pickle file contains a dictionary with specific keys. This is an example of a valid dictionary to read the currents on the arduinos output pins:  
 `{'cmd': 'currents', 'execute': True, 'response': 'waiting for response'}`
-#### `weather_analysis` Module
+#### `weather_analysis`
 The weather station is currently being redesigned, and as such this module is a WIP. The main idea is that it analyzes the results of a connected weather sensor and communicates a True/False statement about weather safety to core.  
 
 ## User Input and Configuration Files
 We use yaml files to store configuration information. We don't allow users to edit these directly. It is best practice for this project to keep `.yaml` and `.yml` files write locked to the user in production, and allow the user to edit them using a dedicated front end. Developers are responsible for providing documentation for this frontend for users of all skill levels (assuming basic computer knowledge).
-## Code Style & Naming Conventions
+## Code Style and Naming Conventions
 Taijen fill this out.
