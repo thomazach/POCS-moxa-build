@@ -76,7 +76,7 @@ def serialize_commands(readable_command: str):
         case "current" | "currents" | "get_current" | "get_currents":
             return f'<2>'.encode("utf-8")
         
-        case "weather" | "read_weather" | "get_weather" | "weather_sensor" | "read_weather_sensor" | "get_weather_sensor":
+        case "read_weather" | "get_weather" | "read_weather_sensor" | "get_weather_sensor":
             return f'<3>'.encode("utf-8")
 
 def listen(port):
