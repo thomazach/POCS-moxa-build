@@ -25,20 +25,6 @@ RELAY_4 ---> Mount
 '''
 DEFAULT_ARDUINO_PORT = '/dev/ttyACM0'
 
-class arduino_command():
-    '''
-    Object that gets pickled for arduino communication. 
-    
-    When modules need to exectue an arduino command they must do it through this pickle object, since directly connecting to the arduino's serial 
-    port using pyserial will restart the arduino sketch, causing setup() to be run which will change the power states of the pins. This defaults
-    to turning everything on. We need this default state for automatic system recovery, but if a user wants the system to run with power off on 
-    certain pieces of hardware, everytime a module used an arduino command directly with pyserial the power to that hardware would be turned on again.
-    '''
-    def __init__(self, cmd, execute = True) -> None:
-        self.cmd = cmd
-        self.execute = execute
-        self.response = "waiting for response"
-
 def serialize_commands(readable_command: str):
     '''
     Converts a readable command (ex. cameras off) to an arduino serial readable command (ex. <0,3>)
@@ -115,22 +101,22 @@ def main():
         On = True
         while On:
             with open(pickleFilePath, "rb") as f:
-                commandObject = pickle.load(f)
+                commandDict = pickle.load(f)
 
-            if commandObject.cmd.lower() == "off":
+            if commandDict['cmd'].lower() == "off":
                 On = False
                 continue
 
-            if commandObject.execute == True:
-                arduinoReadyCommand = serialize_commands(commandObject.cmd)
+            if commandDict['execute'] == True:
+                arduinoReadyCommand = serialize_commands(commandDict['cmd'])
                 # TODO: When logging is added log the command sent to the arduino
                 arduinoPort.write(arduinoReadyCommand)
-                commandObject.response = listen(arduinoPort)
+                commandDict['response'] = listen(arduinoPort)
 
-            if commandObject.response != "waiting for response":
-                commandObject.execute = False
+            if commandDict['response'] != "waiting for response":
+                commandDict['execute'] = False
                 with open(pickleFilePath, "wb") as f:
-                    pickle.dump(commandObject, f)
+                    pickle.dump(commandDict, f)
 
             time.sleep(1)
 
