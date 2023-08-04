@@ -1,33 +1,25 @@
-import threading
-import time
-import string
-import subprocess
 import os
+import sys
+import subprocess
+import pickle
+import multiprocessing
 import datetime
+import time
 
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+from observational_scheduler.obs_scheduler import target
 
-def give_dummy_command_data():
-    '''
-    Recieves the following from pocs.observational_scheduler:
-    -number of images to take in this observation
-    -exposure time of each image
-    -what combination of cameras to take images with
+def requestCameraCommand():
+    relative_path = os.path.dirname(os.path.dirname(__file__))
+    with open(f"{relative_path}/pickle/current_target.pickle", "rb") as f:
+        current_target = pickle.load(f)
+    return current_target
 
-    Example .yaml:
-
-    observation:
-        priority: 100
-        primary_cam: 
-            take_images: True
-            num_captures: 10
-            exposure_time: 120
-
-        secondary_cam:
-            take_images: True
-            num_captures: 40
-            exposure_time: 30
-    '''
-    return dict({'primary_cam': {'take_images': True, 'num_captures': 10, 'exposure_time': 12}, 'secondary_cam': {'take_images': True, 'num_captures': 40, 'exposure_time': 3}})
+def sendTargetObjectCommand(current_target_object, cmd):
+    relative_path = os.path.dirname(os.path.dirname(__file__))
+    current_target_object.cmd = cmd
+    with open(f"{relative_path}/pickle/current_target.pickle", "wb") as f:
+        pickle.dump(current_target_object, f)
 
 def get_camera_paths_dummy():
     return "usb:001,007", "usb:001,008"
@@ -37,10 +29,10 @@ def get_camera_paths():
     out = subprocess.run(["gphoto2", "--auto-detect"], stdout=subprocess.PIPE)
     cameraPaths = out.stdout.decode('utf-8')
 
-    for charsToRemove in ['Model', 'Port', 'n', '\n', ' ']:
+    for charsToRemove in ['Model', 'Port', '-', '\n', ' ']:
         cameraPaths = cameraPaths.replace(charsToRemove, '')
 
-    cameraPaths = cameraPaths.split("CanonEOS100D")
+    cameraPaths = list(filter(None, cameraPaths.split("CanonEOS100D")))
 
     primary_camera_path, secondary_camera_path = cameraPaths
 
@@ -48,52 +40,66 @@ def get_camera_paths():
 
 def take_observation(cameraSettings, iso=1):
     cam_type, camera_path, num_captures, exposure_time, observation_dir, directoryPath = cameraSettings
-    
+
     if num_captures <= 0:
         raise Exception("Bad observation data: num_captures must be a positive non-zero integer")
-
+    i = num_captures
     while True:
-        # UNCOMMENT ALL subprocess.run LINES IN PRODUCTION
-        if num_captures == 0:
+        if i == 0:
             break
-        
-        # Clear the camera's RAM in a hacky way to allow for back to back large exposures (tested on 120s)
-        cmdClearRAM = f"gphoto2 --port {camera_path} --set-config imageformat=0".split(' ')
-        #subprocess.run(cmdClearRAM)
-        cmdClearRAM = f"gphoto2 --port {camera_path} --set-config imageformat=9".split(' ')
-        #subprocess.run(cmdClearRAM)
-        
-        cmdArgs = f"gphoto2 --port {camera_path} --set-config iso={iso} --filename {directoryPath}/{observation_dir}/{cam_type}/astro_image_{num_captures}.cr2 --set-config-index shutterpseed=0 --wait-event=1s --set-config-index eosremoterelease=2 --wait-event={exposure_time}s --set-config-index eosremoterelease=4 --wait-event-and-download=2s".split(' ')
-        #subprocess.run(cmdArgs)
 
-        # REMOVE IN PRODUCTION, TEST PRINT SINCE ON WINDOWS
-        print(cmdArgs)
+        cmdArgs = f"gphoto2 --port {camera_path} --set-config iso={iso} --filename {directoryPath}/{observation_dir}/{cam_type}/astro_image_{num_captures - i}.cr2 --set-config-index shutterspeed=0 --wait-event=1s --set-config-index eosremoterelease=2 --wait-event={exposure_time}s --set-config-index eosremoterelease=4 --wait-event-and-download=2s".split(' ')
+        subprocess.run(cmdArgs)
 
-        num_captures -= 1
+        i -= 1
 
-def initialize_observation(cam_observation_dict):
-    # UNCOMMENT ALL subprocess.run LINES IN PRODUCTION
+def initialize_observation(current_target_object):
 
     format = "%Y-%m-%dT%H:%M:%S"
     timezone = datetime.timezone.utc
     time_and_date = datetime.datetime.now(tz=timezone).strftime(format)
 
     directoryPath=os.path.dirname(os.path.abspath(__file__)).replace('cameras', 'images')
-    cmdMakeObservationDirectory = f"cd /home/uname/moxa-pocs/images; mkdir {time_and_date}".split(' ')
-    #subprocess.run(cmdMakeObservationDirectory)
+    cmdMakeObservationDirectory = f"mkdir {time_and_date}; mkdir {time_and_date}/Primary_Cam; mkdir {time_and_date}/Secondary_Cam"
+    subprocess.Popen(cmdMakeObservationDirectory, shell=True, cwd=directoryPath)
 
-    primary_camera_path, secondary_camera_path = get_camera_paths_dummy() # Replace with get_camera_paths in production
+    primary_camera_path, secondary_camera_path = get_camera_paths()
     primary_camera = ('Primary_Cam', primary_camera_path)
     secondary_camera = ('Secondary_Cam', secondary_camera_path)
 
-    cameraSettings = [primary_camera[0], primary_camera[1], cam_observation_dict['primary_cam']['num_captures'], cam_observation_dict['primary_cam']['exposure_time'], time_and_date, directoryPath]
+    cameraSettingsPrimary = [primary_camera[0], primary_camera[1], current_target_object.camera_settings['primary_cam']['num_captures'], current_target_object.camera_settings['primary_cam']['exposure_time'], time_and_date, directoryPath]
+    cameraSettingsSecondary = [secondary_camera[0], secondary_camera[1], current_target_object.camera_settings['secondary_cam']['num_captures'], current_target_object.camera_settings['secondary_cam']['exposure_time'], time_and_date, directoryPath]
 
-    if cam_observation_dict['primary_cam']['take_images']:
-        threading.Thread(target=take_observation, args=([cameraSettings])).start()
+    if current_target_object.camera_settings['primary_cam']['take_images']:
+        primary_cam_process = multiprocessing.Process(target=take_observation, args=([cameraSettingsPrimary]))
+        primary_cam_process.start()
 
-    if cam_observation_dict['secondary_cam']['take_images']:
-        take_observation(cameraSettings)
+    if current_target_object.camera_settings['secondary_cam']['take_images']:
+        secondary_cam_process = multiprocessing.Process(target=take_observation, args=([cameraSettingsSecondary]))
+        secondary_cam_process.start()
 
-config = give_dummy_command_data()
+    return primary_cam_process, secondary_cam_process
 
-initialize_observation(config)
+def main():
+    current_target = requestCameraCommand()
+
+    if current_target.cmd == 'take images':
+            primaryCamProc, secondaryCamProc = initialize_observation(current_target)
+
+            while True:
+                # Method to detect if both camera processes or running
+                primaryCamProc.join(timeout=0)
+                secondaryCamProc.join(timeout=0)
+                if not (primaryCamProc.is_alive() or secondaryCamProc.is_alive()):
+                    sendTargetObjectCommand(current_target, 'observation complete')
+                    break
+
+                current_target = requestCameraCommand()
+                match current_target.cmd:
+                    case 'emergency park':
+                        primaryCamProc.terminate()
+                        secondaryCamProc.terminate()
+                        break
+
+if __name__ == '__main__':
+    main()
