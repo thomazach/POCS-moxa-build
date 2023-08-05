@@ -215,6 +215,8 @@ def main():
                     sendTargetObjectCommand(current_target, 'stopped mount serial')
 
                 case 'observation complete':
+                    print("Observation complete. Parking the mount.")
+                    mount_port.write(b':MP1#')
                     break
                 
                 case _:
