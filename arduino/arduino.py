@@ -50,7 +50,7 @@ def serialize_commands(readable_command: str):
                     cmd_arg = 0
                 case "unassigned":
                     cmd_arg = 1
-                    raise Warning("Referenced arduino pin is not attached to hardware")
+                    print("WARNING: Referenced arduino pin is not attached to hardware")
                 case "fan":
                     cmd_arg = 2
                 case "cameras":
