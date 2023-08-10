@@ -5,33 +5,24 @@ import time
 import serial
 import pickle
 from astropy import units as u
-from astropy.coordinates import SkyCoord
+from astropy.coordinates import SkyCoord, Angle
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from observational_scheduler.obs_scheduler import target
 
-'''
-
-First attempt at mount control. This section(directory: moxa-pocs/mount) needs to handle the following inputs from moxa-pocs/core:
-
-1. an astropy.coordinates.SkyCoord object
-    -unpark the mount if necessary
-    -move to the target
-    -start tracking it
-2. Call camera_control with the proper information.
-3. go to the safe position and park
-    -point the cameras at the ground 
-    -park the mount
-4. handle mount drift corrections (yikes, putting that on the backburner. might not be necessariy with wide FOV cameras)
-
-
-Commands are sent using iOptron Mount RS-232 Command Langauge. The jist is that you send a string of the form ':<command characters>#', 
-and then the mount will respond over serial with a formatted response, which depends on the command that was sent. This will be done using pySerial.
-
-'''
 ### Testing function, should use auto detection in the future 
 def get_mount_port():
     return '/dev/ttyUSB0'
+
+def getCurrentSkyCoord(port):
+    ### Returns a SkyCoord object of whatever the mount thinks it's currently pointing at (polar alignment required) ###
+    port.write(b':GEC#')
+    rawPosition = port.read(18).decode('utf-8')
+    rawDEC, rawRA = float(rawPosition[0:9]), float(rawPosition[9:17]) #(0.01 arcseconds, milliseconds)
+    RADecimalDegree = rawRA * 1/1000 * 360/86400 # sec/millisec * deg/sec
+    DECDecimalDegree = Angle(str(rawDEC * 1/100) + 's').deg
+    
+    return SkyCoord(RADecimalDegree, DECDecimalDegree, unit=u.deg)
 
 def connect_to_mount():
 
@@ -44,14 +35,11 @@ def connect_to_mount():
         if modelNumber != b'0030':
             raise Exception("Incorrect model number: Bad serial communication. Required mount for this software is the iEQ30Pro from iOptron.")
         
-        ### NEED TO TEST THIS COMMAND ITS UNCLEAR WHICH SETTING EFFECTS THE SLEWING SPEED ###
-        # Set the mount to slew at 256x sidereal using "N S E W buttons"
-        mountSerialPort.write(b':SR7#') 
+        # Set the mount to slew at max speed, which is 1400 x Sidereal
+        mountSerialPort.write(b':SR9#') 
         
         # Get the current RA and DEC coordinates
-        mountSerialPort.write(b':GEC#')
-        currentCoordinates = mountSerialPort.read(21) # Expected reponse format is: “sTTTTTTTTXXXXXXXX#”
-        # Need to split this into an (RA, DEC) tuple and decode the DEC XXXXX part which doesn't have a sign. Test on hardware first.
+        currentCoordinates = getCurrentSkyCoord(mountSerialPort)
 
         # Check that the slewing rate is its slowest value for max accuracy, and set it if it isn't
         mountSerialPort.write(b':GSR#')
@@ -133,9 +121,9 @@ def create_movement_commands(current_position, desired_position):
     # 1 degree / 3600 arcseconds * 15.042 arcseconds/ seconds
     # = 15.042 / 3600 degrees / second 
     # 3600 / 15.042 seconds / degree
-
-    dec_time = 3600 / 15.042 * 256 * dec_diff
-    ra_time = 3600 / 15.042 * 256 * ra_diff
+    # 1400 is the multiple selected by :SR9# on an iEQ30Pro
+    dec_time = 3600 / 15.042 * 1400 * dec_diff
+    ra_time = 3600 / 15.042 * 1400 * ra_diff
 
     dec_tuple = (dec_cmd, dec_time)
     ra_tuple = (ra_cmd, ra_time)
@@ -182,7 +170,7 @@ def execute_movement_commands(mount_serial_port, RA_tuple, DEC_tuple):
 def main():
     mount_port, START_COORDINATES = connect_to_mount()
 
-    if START_COORDINATES != None: # Caveman intelect data check, improve later
+    if type(START_COORDINATES) == SkyCoord:
 
         ### Start main mount loop that listens for incoming command from moxa-pocs/core and executes as necessary
         while True:
@@ -215,6 +203,8 @@ def main():
                     sendTargetObjectCommand(current_target, 'stopped mount serial')
 
                 case 'observation complete':
+                    print("Observation complete. Parking the mount.")
+                    mount_port.write(b':MP1#')
                     break
                 
                 case _:
