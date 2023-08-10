@@ -18,7 +18,7 @@ class target:
         self.priority = 0 - priority
     
     def __lt__(self, other):
-        return (0 - self.priority) < (0 - other.priority)
+        return self.priority < other.priority
     
     def __eq__(self, other):
         if self.name == other.name and self.priority == other.priority and self.position == other.position:
