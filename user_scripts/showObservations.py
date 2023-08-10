@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-# TODO: make function
+# TODO: CURRENTLY BROKEN, FIX SOON
 def main(args):
 
     if args.showAll:
