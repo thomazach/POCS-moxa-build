@@ -57,21 +57,21 @@ def makeObservationDict():
         camera['exposure_time'] = None
         camera['take_images'] = yesOrNo(input('Do you want this camera to take images [y/n]: '))
         if camera['take_images']:
-            camera['num_captures'] = int(input('Enter # of images to capture: ') or 1)
-            camera['exposure_time'] = int(input('Enter exposure time per image in seconds: ') or 1)
+            camera['num_captures'] = _betterInput('Enter # of images to capture: ', Type=int, default=1)
+            camera['exposure_time'] = _betterInput('Enter exposure time per image in seconds: ', Type=int, default=1)
         return camera
 
-    note = str(input('Enter user note [leave blank if none]: ') or None)
-    priority = int(input('Input the priority of the observation \nas a positive whole number: ') or 0)
-    ra = str(input('Input the ra: ') or '00 42 44')
-    dec = str(input('Input the dec: ') or '+41 16 09')
-    cmd = str(input('Input the command [leave blank for slew]: ') or 'slew to target')
+    note = _betterInput('Enter user note [leave blank if none]: ', default='None')
+    priority = _betterInput('Input the priority of the observation as a positive whole number: ', Type=int, default=0)
+    ra = _betterInput('Input the ra: ', default='00 42 44')
+    dec = _betterInput('Input the dec: ', default='+41 16 09')
+    cmd = _betterInput('Input the command [leave blank for slew]: ', default='slew to target')
     print('Primary Camera Settings: \n')
     primaryCam = _makeCameraArr()
     print('Secondary Camera Settings: \n')
     secondaryCam = _makeCameraArr()
     attributes = {}
-    attributes['user_note'] = note
+    attributes['note'] = note
     attributes['priority'] = priority
     attributes['ra'] = ra
     attributes['dec'] = dec
