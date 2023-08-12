@@ -29,6 +29,24 @@ def _writeToFile(PATH, msg):
     file_write.write(msg)
     file_write.close()
 
+def _betterInput(prompt, Type = str, default = None):
+    #TODO: Implement the mountCommand class so that I can also have it 
+    #      handled here
+
+    result = None
+    while result == None:
+        userInput = input(prompt) or default
+        if userInput:
+            try:
+                result = Type(userInput)
+            except TypeError as error:
+                print('=INVALID= Your input was not of type ', Type)
+                userInput = None
+            except Exception as error:
+                print('=ERROR= ', error)
+                userInput = None
+    return result
+
 def makeObservationDict():
 
     #TODO: Handle bad inputs
