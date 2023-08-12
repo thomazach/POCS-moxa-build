@@ -74,12 +74,12 @@ def makeObservationDict():
         camera['exposure_time'] = None
         camera['take_images'] = yesOrNo(input('Do you want this camera to take images [y/n]: '))
         if camera['take_images']:
-            camera['num_captures'] = _betterInput('Enter # of images to capture: ', 1)
-            camera['exposure_time'] = _betterInput('Enter exposure time per image in seconds: ', 1)
+            camera['num_captures'] = _betterInput('Enter # of images to capture: ', Type=int, default=1)
+            camera['exposure_time'] = _betterInput('Enter exposure time per image in seconds: ', Type=int, default=1)
         return camera
 
     note = _betterInput('Enter user note [leave blank if none]: ', default='None')
-    priority = _betterInput('Input the priority of the observation as a positive whole number: ', 0)
+    priority = _betterInput('Input the priority of the observation as a positive whole number: ', Type=int, default=0)
     ra = _betterInput('Input the ra: ', default='00 42 44')
     dec = _betterInput('Input the dec: ', default='+41 16 09')
     cmd = _betterInput('Input the command [leave blank for slew]: ', default='slew to target')
