@@ -30,7 +30,12 @@ def get_camera_paths():
 
     cameraPaths = cameraPaths.split("CanonEOS100D")
 
-    primary_camera_path, secondary_camera_path = cameraPaths
+    try:
+        primary_camera_path, secondary_camera_path = cameraPaths
+    except ValueError:
+        print("Issue detecting cameras. Check power, camera settings, and the output of 'gphoto2 --auto-detect'")
+    except Exception as e:
+        print(f"Error: {e}")
 
     return primary_camera_path, secondary_camera_path
 
@@ -68,9 +73,9 @@ def initialize_observation(current_target_object):
 
     directoryPath=os.path.dirname(os.path.abspath(__file__)).replace('cameras', 'images')
     cmdMakeObservationDirectory = f"cd {directoryPath}; mkdir {time_and_date}; cd {time_and_date}; mkdir 'Primary_Cam'; mkdir 'Secondary_Cam'".split(' ')
-    #subprocess.run(cmdMakeObservationDirectory)
+    subprocess.run(cmdMakeObservationDirectory)
 
-    primary_camera_path, secondary_camera_path = get_camera_paths_dummy() # Replace with get_camera_paths in production
+    primary_camera_path, secondary_camera_path = get_camera_paths()
     primary_camera = ('Primary_Cam', primary_camera_path)
     secondary_camera = ('Secondary_Cam', secondary_camera_path)
 
