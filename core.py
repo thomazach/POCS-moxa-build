@@ -3,8 +3,9 @@ import heapq
 import pickle
 import random
 import math
-
 import time
+
+from yaml import safe_load
 from datetime import datetime, timezone
 
 from astropy import units as u
@@ -160,6 +161,18 @@ def main():
         keepGettingObservations = yesOrNo(input('Add another observation [y/n]: '))
     obs_scheduler.createObservationList(observationsDict)
     print(observationsDict)
+
+    parentDirectory = os.getcwd()
+    with open(f"{parentDirectory}/conf_files/settings.yaml", 'r') as f:
+        settings = safe_load(f)
+
+    TARGETS_FILE_PATH = settings['TARGETS_FILE_PATH']
+    LAT_CONFIG = settings['LATITUDE']
+    LON_CONFIG = settings['LONGITUDE']
+    ELEVATION_CONFIG = settings['ELEVATION']
+    UNIT_LOCATION = EarthLocation(lat=LAT_CONFIG, lon=LON_CONFIG, height=ELEVATION_CONFIG * u.m)
+
+    print(TARGETS_FILE_PATH, LAT_CONFIG, LON_CONFIG, ELEVATION_CONFIG)
 
     _writeToFile(WEATHER_RESULTS_TXT, 'go')
     _writeToFile(WEATHER_RESULTS_TXT, 'true') # Temporarily need to bypass weather module until panoptes team figures out solution for weather sensor
