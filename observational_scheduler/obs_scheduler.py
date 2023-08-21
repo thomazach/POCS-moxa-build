@@ -3,7 +3,10 @@ import heapq
 import yaml
 from yaml.loader import SafeLoader
 
-DATA_FILE_DEFAULT_PATH = os.path.dirname(__file__).replace('observational_scheduler', 'conf_files/test_fields.yaml')
+PARENT_DIRECTORY = os.path.dirname(__file__).replace('observational_scheduler', '')
+with open(f'{PARENT_DIRECTORY}/conf_files/settings.yaml', 'r') as f:
+    settings = yaml.safe_load(f)
+DATA_FILE_DEFAULT_PATH = PARENT_DIRECTORY + settings['TARGETS_FILE_PATH']
 
 class target:
 
