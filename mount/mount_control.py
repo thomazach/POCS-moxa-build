@@ -13,7 +13,18 @@ parentPath = os.path.dirname(__file__).replace('/mount', '')
 
 ### Testing function, should use auto detection in the future 
 def get_mount_port():
-    return '/dev/ttyUSB0'
+
+    usbList = os.popen('ls /dev/ttyUSB*').read()
+    usbList = usbList.split('\n')
+    usbList.remove('')
+
+    for usbPort in usbList:
+        with serial.Serial(usbPort, 9600, timeout=3) as mount:
+            mount.write(b':MountInfo#')
+            out = mount.read(4)
+            if out == b'0030':
+                return usbPort
+
 
 def getCurrentSkyCoord(port):
     ### Returns a SkyCoord object of whatever the mount thinks it's currently pointing at (polar alignment required) ###
