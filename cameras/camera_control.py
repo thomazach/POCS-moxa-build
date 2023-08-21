@@ -20,9 +20,6 @@ def sendTargetObjectCommand(current_target_object, cmd):
     with open(f"{relative_path}\pickle\current_target.pickle", "wb") as f:
         pickle.dump(current_target_object, f)
 
-def get_camera_paths_dummy():
-    return "usb:001,007", "usb:001,008"
-
 def get_camera_paths():
     print("Finding cameras using gphoto2...")
     out = subprocess.run(["gphoto2", "--auto-detect"], stdout=subprocess.PIPE)
