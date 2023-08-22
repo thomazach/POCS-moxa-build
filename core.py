@@ -1,7 +1,9 @@
+#!/usr/bin/python3
+from setuptools import setup, find_packages
+import sys
 import os
 import heapq
 import pickle
-import random
 import math
 import time
 
@@ -12,18 +14,40 @@ from astropy import units as u
 from astropy.time import Time
 from astropy.coordinates import EarthLocation, SkyCoord, AltAz, Angle, get_body
 
+import subprocess
 from observational_scheduler import obs_scheduler
 
 WEATHER_RESULTS_TXT = 'weather_results.txt'
 TARGETS_FILE_PATH = 'conf_files/test_fields.yaml'
-LAT_CONFIG = '44.56725'
-LON_CONFIG = '-123.28925'
-ELEVATION_CONFIG = 71.628
-UNIT_LOCATION = EarthLocation(lat=LAT_CONFIG, lon=LON_CONFIG, height=ELEVATION_CONFIG * u.m)
-
-random.seed(time.time_ns)
 
 yesOrNo = lambda x: x == 'y' or x == 'Y' or x == 'yes' or x == 'Yes'
+
+class command:
+    def __init__(self, userInput):
+        try:
+            parts = userInput.split()
+        except Exception as error:
+            print('=ERROR= ', error)
+
+        if len(parts) == 1:
+            cmd = parts[0]
+            realFile = None
+            for file in os.listdir('./user_scripts'):
+                if file.split('.')[0] == cmd:
+                    realFile = file
+            subprocess.run('./user_scripts/' + realFile)
+        elif parts[0] == '&':
+            print('background process not in yet')
+        else:
+            cmd = parts[0]
+            args = parts[1:]
+            realFile = None
+            for file in os.listdir('./user_scripts'):
+                if file.split('.')[0] == cmd:
+                    realFile = file
+            commandArray = ['./user_scripts/' + realFile]
+            subprocess.Popen(commandArray + args, cwd=os.path.dirname(os.path.realpath(__file__)))
+            print('annoying')
 
 def _writeToFile(PATH, msg):
     file_write = open(PATH, "w")
@@ -80,7 +104,6 @@ def makeObservationDict():
     attributes['primary_cam'] = primaryCam
     attributes['secondary_cam'] = secondaryCam
     return attributes
-
 
 def readWeatherResults(PATH):
     weather_results_file_object = open(PATH, 'r')
@@ -152,14 +175,17 @@ def checkTargetAvailability(position, unitLocation):
 
 def main():
 
-    keepGettingObservations = True
-    observationsDict = {}
-    while keepGettingObservations:
-        name = str(input('Name of the observation: '))
-        attributes = makeObservationDict()
-        observationsDict[name] = attributes
-        keepGettingObservations = yesOrNo(input('Add another observation [y/n]: '))
-    obs_scheduler.createObservationList(observationsDict)
+    test1 = _betterInput("Command: ", command, None)
+    print('Mtest1: ', test1, ' \nMtype(test1): ', str(type(test1)))
+
+    # keepGettingObservations = True
+    # observationsDict = {}
+    # while keepGettingObservations:
+    #     name = str(input('Name of the observation: '))
+    #     attributes = makeObservationDict()
+    #     observationsDict[name] = attributes
+    #     keepGettingObservations = yesOrNo(input('Add another observation [y/n]: '))
+    # obs_scheduler.createObservationList(observationsDict)
 
     parentDirectory = os.getcwd()
     with open(f"{parentDirectory}/conf_files/settings.yaml", 'r') as f:

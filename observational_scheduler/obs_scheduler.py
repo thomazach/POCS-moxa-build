@@ -18,12 +18,18 @@ class target:
         self.priority = 0 - priority
     
     def __lt__(self, other):
-        return (0 - self.priority) < (0 - other.priority)
+        return self.priority < other.priority
     
     def __eq__(self, other):
         if self.name == other.name and self.priority == other.priority and self.position == other.position:
             return True
         return False
+    
+    def __gt__(self, other):
+        return self.priority > other.priority
+    
+    def __ge__(self, other):
+        return self.priority >= other.priority
     
     def __str__(self):
         return f'---\npriority={0 - self.priority}\nname={self.name}\nposition={self.position}\ncamera_settings={self.camera_settings}\nobservation_notes={self.observation_notes}\n---'
@@ -32,15 +38,32 @@ def getTargetQueue(PATH):
     pQueue = []
     heapq.heapify(pQueue)
     dataDict = 0
-    with open(DATA_FILE_DEFAULT_PATH) as file:
+    with open(PATH) as file:
         dataDict = yaml.load(file, Loader=SafeLoader)
     for key, entry in dataDict.items():
         name = key
-        obs_note = entry['user_note']
+        obsNote = entry['note']
         prio = entry['priority']
         position = {'ra': entry['ra'], 'dec' :entry['dec']}
-        camera_settings = {'primary_cam' : entry['primary_cam'], 'secondary_cam' : entry['secondary_cam']}
+        cameraSettings = {'primary_cam' : entry['primary_cam'], 'secondary_cam' : entry['secondary_cam']}
         command = entry['cmd']
 
-        heapq.heappush(pQueue, target(name, position, camera_settings, priority=prio, observation_notes=obs_note, command=command))
+        heapq.heappush(pQueue, target(name, position, cameraSettings, priority=prio, observation_notes=obsNote, command=command))
     return pQueue
+
+def getTargetList(PATH = DATA_FILE_DEFAULT_PATH):
+    result = []
+    with open(PATH) as file:
+        dataDict = yaml.load(file, Loader=SafeLoader)
+    for key, entry in dataDict.items():
+        name = key
+        obsNote = entry['note']
+        prio = entry['priority']
+        position = {'ra': entry['ra'], 'dec' :entry['dec']}
+        cameraSettings = {'primary_cam' : entry['primary_cam'], 'secondary_cam' : entry['secondary_cam']}
+        command = entry['cmd']
+
+        result.append(target(name, position, cameraSettings, priority=prio, observation_notes=obsNote, command=command))
+
+    return result
+

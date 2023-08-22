@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 from subprocess import Popen, PIPE
 
 """
