@@ -1,41 +1,84 @@
+import os
+import sys
 import time
 import serial
+import pickle
 from astropy import units as u
-from astropy.coordinates import SkyCoord
+from astropy.coordinates import SkyCoord, Angle
 
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+from observational_scheduler.obs_scheduler import target
 
-'''
+parentPath = os.path.dirname(__file__).replace('/mount', '')
 
-First attempt at mount control. This section(directory: moxa-pocs/mount) needs to handle the following inputs from moxa-pocs/core:
-
-1. an astropy.coordinates.SkyCoord object
-    -unpark the mount if necessary
-    -move to the target
-    -start tracking it
-2. go to the safe position and park
-    -point the cameras at the ground 
-    -park the mount
-3. handle mount drift corrections (yikes, putting that on the backburner. might not be necessariy with wide FOV cameras)
-
-
-Commands are sent using iOptron Mount RS-232 Command Langauge. The jist is that you send a string of the form ':<command characters>#', 
-and then the mount will respond over serial with a formatted response, which depends on the command that was sent. This will be done using pySerial.
-
-'''
-
-### Recieve a command from moxa-pocs/core, since this is being written before moxa-pocs/core, i will be using a dummy function that manually feeds input
-def get_mount_command(dtype='SkyCoord'):
-
-    if dtype == 'SkyCoord':
-        return SkyCoord('00 42 44 +41 16 09', unit=(u.hourangle, u.deg))
-    elif dtype == 'close_comms':
-        return 'close_comms'
-    else:
-        return 'go_safe'
-    
-### Testing function, should use 
+### Testing function, should use auto detection in the future 
 def get_mount_port():
-    return '/dev/ttyUSB0'
+
+    usbList = os.popen('ls /dev/ttyUSB*').read()
+    usbList = usbList.split('\n')
+    usbList.remove('')
+
+    for usbPort in usbList:
+        with serial.Serial(usbPort, 9600, timeout=3) as mount:
+            mount.write(b':MountInfo#')
+            out = mount.read(4)
+            if out == b'0030':
+                return usbPort
+
+
+def getCurrentSkyCoord(port):
+    ### Returns a SkyCoord object of whatever the mount thinks it's currently pointing at (polar alignment required) ###
+    port.write(b':GEC#')
+    rawPosition = port.read(18).decode('utf-8')
+    rawDEC, rawRA = float(rawPosition[0:9]), float(rawPosition[9:17]) #(0.01 arcseconds, milliseconds)
+    RADecimalDegree = rawRA * 1/1000 * 360/86400 # sec/millisec * deg/sec
+    DECDecimalDegree = Angle(str(rawDEC * 1/100) + 's').deg
+    
+    return SkyCoord(RADecimalDegree, DECDecimalDegree, unit=u.deg)
+
+def connect_to_mount():
+
+    mountSerialPort = serial.Serial(get_mount_port(), 9600, timeout=30, parity='N')
+    mountSerialPort.open()    
+
+    # Verify that the mount is communicating as expected
+    mountSerialPort.write(b':MountInfo#')
+    modelNumber = mountSerialPort.read(4)
+    if modelNumber != b'0030':
+        raise Exception("Incorrect model number: Bad serial communication. Required mount for this software is the iEQ30Pro from iOptron.")
+    
+    # Set the mount to slew at max speed, which is 1440 x Sidereal
+    mountSerialPort.write(b':SR9#')
+    out = mountSerialPort.read(1)
+    # TODO: Add log message for out serial
+    
+    # Get the current RA and DEC coordinates
+    currentCoordinates = getCurrentSkyCoord(mountSerialPort)
+
+    # Check that the slewing rate is its slowest value for max accuracy, and set it if it isn't
+    mountSerialPort.write(b':GSR#')
+    slewingSpeed = mountSerialPort.read(2)
+    if slewingSpeed != b'7#':
+        print("Incorrect slewing rate, attempting to set it to 256x sidereal")
+        mountSerialPort.write(b':MSR7#')
+        if mountSerialPort.read(1) == b'1':
+            print("Succesfully updated slewing rate.")
+        else:
+            raise Exception("Problem setting sidereal tracking rate to 256x sidereal")
+        
+        return mountSerialPort, currentCoordinates
+    
+### Recieve a command from moxa-pocs/core by loading the pickle instance it has provided in the pickle directory
+def request_mount_command():
+    with open(f"{parentPath}/pickle/current_target.pickle", "rb") as f:
+        current_target = pickle.load(f)
+
+    return current_target
+
+def sendTargetObjectCommand(current_target_object, cmd):
+    current_target_object.cmd = cmd
+    with open(f"{parentPath}/pickle/current_target.pickle", "wb") as f:
+        pickle.dump(current_target_object, f)
 
 def create_movement_commands(current_position, desired_position):
     '''
@@ -66,22 +109,22 @@ def create_movement_commands(current_position, desired_position):
             A float representing the amount of time to move along the specified axis in SECONDS
 
     '''
-    # Find RA and DEC difference
-    dec_diff = desired_position.dec.degree - current_position.dec.degree
-    ra_diff = desired_position.ra.degree - current_position.ra.degree
+    angular_difference = lambda angle1, angle2: (angle2 - angle1 + 180) % 360 - 180
+    dec_diff = angular_difference(current_position.dec.degree, desired_position.dec.degree)
+    ra_diff = angular_difference(current_position.ra.degree, desired_position.ra.degree)
 
     # Give each axis the right command based on the difference in axis degrees
     if dec_diff < 0:
-        dec_cmd = ':mn#'
+        dec_cmd = b':mn#'
     elif dec_diff > 0:
-        dec_cmd = ':ms#'
+        dec_cmd = b':ms#'
     else:
         dec_cmd = ''
 
     if ra_diff < 0:
-        ra_cmd = ':me#'
+        ra_cmd = b':me#'
     elif ra_diff > 0:
-        ra_cmd = ':mw#'
+        ra_cmd = b':mw#'
     else:
         ra_cmd = ''
 
@@ -91,9 +134,9 @@ def create_movement_commands(current_position, desired_position):
     # 1 degree / 3600 arcseconds * 15.042 arcseconds/ seconds
     # = 15.042 / 3600 degrees / second 
     # 3600 / 15.042 seconds / degree
-
-    dec_time = 3600 / 15.042 * 256 * dec_diff
-    ra_time = 3600 / 15.042 * 256 * ra_diff
+    # 1440 is the multiple selected by :SR9# on an iEQ30Pro
+    dec_time = abs(dec_diff) / (15.042 * 1440 * 0.000277778)
+    ra_time = abs(ra_diff) / (15.042 * 1440 * 0.000277778)
 
     dec_tuple = (dec_cmd, dec_time)
     ra_tuple = (ra_cmd, ra_time)
@@ -102,69 +145,89 @@ def create_movement_commands(current_position, desired_position):
 
 def execute_movement_commands(mount_serial_port, RA_tuple, DEC_tuple):
     '''
-    DEV NOTES: 
-        -Replace test prints with serial writes + logging functionality
-        -Blocks for a long period of time, consider moving to seperate thread.
-
     Takes the RA and DEC tuples from create_movement_commands function and executes them using serial
-    communication. For testing purposes, only supports print statements currently (7/5/2023).
+    communication.
 
-    Does not execute commands concurrently.
-
+    Does not execute motion of the ra and dec axis at the same time.
     '''
 
     ra_cmd, ra_time = RA_tuple
     dec_cmd, dec_time = DEC_tuple
 
-    ra_start_time = time.time()
-    print(f"Sent serial command: {ra_cmd} Execution time: {ra_time}")
-    while (ra_start_time + ra_time + 5) > time.time():
-        
-        if ra_start_time + ra_time <= time.time():
-            print(f"Sent serial command ':qR#' to stop RA mount movement at {time.time()}")
-            print(f"Actual execution time is {time.time() - ra_start_time}")
-            break
-
     dec_start_time = time.time()
-    print(f"Sent serial command: {dec_cmd} Execution time: {dec_time}")
-    while (dec_start_time + dec_time + 5) > time.time():
+    with mount_serial_port:
+        print(f"Sending serial command: {dec_cmd}. Slewing DEC axis with desired execution time of {dec_time} seconds")
+        mount_serial_port.write(dec_cmd)
+        while (dec_start_time + dec_time + 5) > time.time():
 
-        if dec_start_time + dec_time <= time.time():
-            print(f"Sent serial command ':qD#' to stop DEC mount movement at {time.time()}")
-            print(f"Actual execution time is {time.time() - dec_start_time}")
-            break
+            if dec_start_time + dec_time <= time.time():
+                mount_serial_port.write(b':qD#')
+                print(f"Sent serial command ':qD#'. Stopped DEC slewing with an execution time of {time.time() - dec_start_time} seconds")
+                break
 
-    print(f"Sent serial command: ':ST1#' to start tracking SkyCoord: {get_mount_command()}")
-### Open serial communication on the mounts serial port
-mount_abstract_serial_port = serial.Serial(get_mount_port(), 9600) # Maybe get 9600 from a config file? doubt they use different serail for same cmd langague
-### Make sure mount is working and get important starting information
-mount_abstract_serial_port.write(b':GEP#') #':GEP#' gets right acension and declination, can use this to confirm the mount is communicating properly
-mount_abstract_serial_port.timeout = 10 # Set timeout of serial object to 10 seconds before waiting for the response
-mount_response = mount_abstract_serial_port.read(21) # Read 21 bytes since the expected reponse is formatted as: “sTTTTTTTTTTTTTTTTTnn#”
-mount_abstract_serial_port.write(b':<get RA DEC movement rates>#') #':GTR#' ?? maybe google telescope stuff
-slew_rate_RA_DEC_tuple = mount_abstract_serial_port.read(-1) # Don't know int value
+        ra_start_time = time.time()
+        print(f"Sending serial command: {ra_cmd}. Slewing RA axis with desired execution time of {ra_time} seconds")
+        mount_serial_port.write(ra_cmd)
+        while (ra_start_time + ra_time + 5) > time.time():
+            
+            if ra_start_time + ra_time <= time.time():
+                mount_serial_port.write(b':qR#')
+                print(f"Sent serial command ':qR#'. Stoped slewing RA axis with an execution time of {time.time() - ra_start_time} seconds")
+                break
 
-if mount_response != None: # Caveman intelect data check, improve later
+        mount_serial_port.write(b':ST1#')
+        print(f"Sent serial command: ':ST1#'. Tracking target.")
 
-    ### Start main mount loop that listens for incoming command from moxa-pocs/core and executes as necessary
-    while True:
+def main():
+    mount_port, START_COORDINATES = connect_to_mount()
 
-        input = get_mount_command()
+    if type(START_COORDINATES) == SkyCoord:
 
-        ### Check that input is the right data type, DO NOT UNPARK OR MOVE IF NOT
-        if isinstance(input, SkyCoord): # Refine late
+        ### Start main mount loop that listens for incoming command from moxa-pocs/core and executes as necessary
+        while True:
+        
+            time.sleep(1)
 
-            ########### Make this entire section into a callable function #####################
+            current_target = request_mount_command()
 
-            mount_abstract_serial_port.write(b':MP0#') # Unpark mount, dont need to check if its already unparked, as command has no effect if already unparked
+            if not mount_port.is_open():
+                mount_port.open()
 
-            RA_tuple, DEC_tuple = create_movement_commands(mount_response, get_mount_command(dtype='SkyCoord'))
+            match current_target.cmd:
 
-            execute_movement_commands('dev/TEStty0', RA_tuple, DEC_tuple)
-        elif input == 'go_safe':
+                case 'slew to target':
+                    print("System attempting to slew to target...")
+                    mount_port.write(b':MP0#') # command has no effect if already unparked
+                    RA_tuple, DEC_tuple = create_movement_commands(START_COORDINATES, SkyCoord(current_target.position['ra'], current_target.position['dec'], unit=(u.hourangle, u.deg)))
+                    execute_movement_commands(mount_port, RA_tuple, DEC_tuple)
+                    sendTargetObjectCommand(current_target, 'take images')
+                    os.system(f'{parentPath}/cameras/camera_control.py')
 
-            #! Still need to call function used above ^ with RA DEC coordinates that face the ground
+                case 'park':
+                    print("Parking the mount.")
+                    mount_port.write(b':MP1#')
+                    sendTargetObjectCommand(current_target, 'parked')
+                    time.sleep(2)
+                    mount_port.close()
+                    
+                case 'emergency park':
+                    print("Parking the mount and aborting observation of this target")
+                    mount_port.write(b':MP1#')
+                    sendTargetObjectCommand(current_target, 'emergency parked')
 
-            mount_abstract_serial_port.write(b':MP1') # Parks the mount
-        elif input == 'close_comms':
-            mount_abstract_serial_port.close()
+                case 'close mount serial port':
+                    mount_port.close()
+                    sendTargetObjectCommand(current_target, 'stopped mount serial')
+
+                case 'observation complete':
+                    print("Observation complete. Parking the mount.")
+                    mount_port.write(b':MP1#')
+                    time.sleep(2)
+                    mount_port.close()
+                    break
+                
+                case _:
+                    continue
+
+if __name__ == '__main__':
+    main()

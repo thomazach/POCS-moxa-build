@@ -3,10 +3,7 @@ import heapq
 import yaml
 from yaml.loader import SafeLoader
 
-PARENT_DIRECTORY = os.path.dirname(__file__).replace('observational_scheduler', '')
-with open(f'{PARENT_DIRECTORY}/conf_files/settings.yaml', 'r') as f:
-    settings = yaml.safe_load(f)
-DATA_FILE_DEFAULT_PATH = PARENT_DIRECTORY + settings['TARGETS_FILE_PATH']
+DATA_FILE_DEFAULT_PATH = os.path.dirname(__file__).replace('observational_scheduler', 'conf_files/observations.yaml')#'conf_files/test_fields.yaml')
 
 class target:
 
@@ -28,6 +25,12 @@ class target:
             return True
         return False
     
+    def __gt__(self, other):
+        return self.priority > other.priority
+    
+    def __ge__(self, other):
+        return self.priority >= other.priority
+    
     def __str__(self):
         return f'---\npriority={0 - self.priority}\nname={self.name}\nposition={self.position}\ncamera_settings={self.camera_settings}\nobservation_notes={self.observation_notes}\n---'
 
@@ -35,14 +38,32 @@ def getTargetQueue(PATH):
     pQueue = []
     heapq.heapify(pQueue)
     dataDict = 0
-    with open(DATA_FILE_DEFAULT_PATH) as file:
+    with open(PATH) as file:
         dataDict = yaml.load(file, Loader=SafeLoader)
     for key, entry in dataDict.items():
         name = key
-        obs_note = entry['user_note']
+        obsNote = entry['note']
         prio = entry['priority']
         position = {'ra': entry['ra'], 'dec' :entry['dec']}
-        camera_settings = {'primary_cam' : entry['primary_cam'], 'secondary_cam' : entry['secondary_cam']}
+        cameraSettings = {'primary_cam' : entry['primary_cam'], 'secondary_cam' : entry['secondary_cam']}
+        command = entry['cmd']
 
-        heapq.heappush(pQueue, target(name, position, camera_settings, priority=prio, observation_notes=obs_note))
+        heapq.heappush(pQueue, target(name, position, cameraSettings, priority=prio, observation_notes=obsNote, command=command))
     return pQueue
+
+def getTargetList(PATH = DATA_FILE_DEFAULT_PATH):
+    result = []
+    with open(PATH) as file:
+        dataDict = yaml.load(file, Loader=SafeLoader)
+    for key, entry in dataDict.items():
+        name = key
+        obsNote = entry['note']
+        prio = entry['priority']
+        position = {'ra': entry['ra'], 'dec' :entry['dec']}
+        cameraSettings = {'primary_cam' : entry['primary_cam'], 'secondary_cam' : entry['secondary_cam']}
+        command = entry['cmd']
+
+        result.append(target(name, position, cameraSettings, priority=prio, observation_notes=obsNote, command=command))
+
+    return result
+
