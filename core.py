@@ -3,8 +3,9 @@ import heapq
 import pickle
 import random
 import math
-
 import time
+
+from yaml import safe_load
 from datetime import datetime, timezone
 
 from astropy import units as u
@@ -29,6 +30,24 @@ def _writeToFile(PATH, msg):
     file_write.write(msg)
     file_write.close()
 
+def _betterInput(prompt, Type = str, default = None):
+    #TODO: Implement the mountCommand class so that I can also have it 
+    #      handled here
+
+    result = None
+    while result == None:
+        userInput = input(prompt) or default
+        if userInput:
+            try:
+                result = Type(userInput)
+            except TypeError as error:
+                print('=INVALID= Your input was not of type ', Type)
+                userInput = None
+            except Exception as error:
+                print('=ERROR= ', error)
+                userInput = None
+    return result
+
 def makeObservationDict():
 
     #TODO: Handle bad inputs
@@ -39,21 +58,21 @@ def makeObservationDict():
         camera['exposure_time'] = None
         camera['take_images'] = yesOrNo(input('Do you want this camera to take images [y/n]: '))
         if camera['take_images']:
-            camera['num_captures'] = int(input('Enter # of images to capture: ') or 1)
-            camera['exposure_time'] = int(input('Enter exposure time per image in seconds: ') or 1)
+            camera['num_captures'] = _betterInput('Enter # of images to capture: ', Type=int, default=1)
+            camera['exposure_time'] = _betterInput('Enter exposure time per image in seconds: ', Type=int, default=1)
         return camera
 
-    note = str(input('Enter user note [leave blank if none]: ') or None)
-    priority = int(input('Input the priority of the observation \nas a positive whole number: ') or 0)
-    ra = str(input('Input the ra: ') or '00 42 44')
-    dec = str(input('Input the dec: ') or '+41 16 09')
-    cmd = str(input('Input the command [leave blank for slew]: ') or 'slew to target')
+    note = _betterInput('Enter user note [leave blank if none]: ', default='None')
+    priority = _betterInput('Input the priority of the observation as a positive whole number: ', Type=int, default=0)
+    ra = _betterInput('Input the ra: ', default='00 42 44')
+    dec = _betterInput('Input the dec: ', default='+41 16 09')
+    cmd = _betterInput('Input the command [leave blank for slew]: ', default='slew to target')
     print('Primary Camera Settings: \n')
     primaryCam = _makeCameraArr()
     print('Secondary Camera Settings: \n')
     secondaryCam = _makeCameraArr()
     attributes = {}
-    attributes['user_note'] = note
+    attributes['note'] = note
     attributes['priority'] = priority
     attributes['ra'] = ra
     attributes['dec'] = dec
@@ -142,6 +161,18 @@ def main():
         keepGettingObservations = yesOrNo(input('Add another observation [y/n]: '))
     obs_scheduler.createObservationList(observationsDict)
 
+    parentDirectory = os.getcwd()
+    with open(f"{parentDirectory}/conf_files/settings.yaml", 'r') as f:
+        settings = safe_load(f)
+
+    TARGETS_FILE_PATH = settings['TARGETS_FILE_PATH']
+    LAT_CONFIG = settings['LATITUDE']
+    LON_CONFIG = settings['LONGITUDE']
+    ELEVATION_CONFIG = settings['ELEVATION']
+    UNIT_LOCATION = EarthLocation(lat=LAT_CONFIG, lon=LON_CONFIG, height=ELEVATION_CONFIG * u.m)
+
+    print(TARGETS_FILE_PATH, LAT_CONFIG, LON_CONFIG, ELEVATION_CONFIG)
+
     _writeToFile(WEATHER_RESULTS_TXT, 'go')
     _writeToFile(WEATHER_RESULTS_TXT, 'true') # Temporarily need to bypass weather module until panoptes team figures out solution for weather sensor
     while True: 
@@ -157,9 +188,6 @@ def main():
                 if not checkTargetAvailability(target.position['ra'] + target.position['dec'], UNIT_LOCATION):
                     continue
                 # tell mount controller target
-                with open("pickle/current_target.pickle", "wb") as pickleFile:
-                    pickle.dump(target, pickleFile)
-                os.system('python mount/mount_control.py')
                 # wait for mount to say complete
                 while True:
                     time.sleep(30)
