@@ -18,7 +18,7 @@ class target:
         self.priority = 0 - priority
     
     def __lt__(self, other):
-        return self.priority < other.priority
+        return (0 - self.priority) < (0 - other.priority)
     
     def __eq__(self, other):
         if self.name == other.name and self.priority == other.priority and self.position == other.position:
@@ -27,10 +27,6 @@ class target:
     
     def __str__(self):
         return f'---\npriority={0 - self.priority}\nname={self.name}\nposition={self.position}\ncamera_settings={self.camera_settings}\nobservation_notes={self.observation_notes}\n---'
-    
-def createObservationList(observationDict):
-    with open(DATA_FILE_DEFAULT_PATH, 'w') as file:
-        observation = yaml.dump(observationDict, file)
 
 def getTargetQueue(PATH):
     pQueue = []

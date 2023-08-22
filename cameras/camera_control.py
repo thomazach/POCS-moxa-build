@@ -21,9 +21,6 @@ def sendTargetObjectCommand(current_target_object, cmd):
     with open(f"{relative_path}/pickle/current_target.pickle", "wb") as f:
         pickle.dump(current_target_object, f)
 
-def get_camera_paths_dummy():
-    return "usb:001,007", "usb:001,008"
-
 def get_camera_paths():
     print("Finding cameras using gphoto2...")
     out = subprocess.run(["gphoto2", "--auto-detect"], stdout=subprocess.PIPE)
@@ -34,7 +31,12 @@ def get_camera_paths():
 
     cameraPaths = list(filter(None, cameraPaths.split("CanonEOS100D")))
 
-    primary_camera_path, secondary_camera_path = cameraPaths
+    try:
+        primary_camera_path, secondary_camera_path = cameraPaths
+    except ValueError:
+        print("Issue detecting cameras. Check power, camera settings, and the output of 'gphoto2 --auto-detect'")
+    except Exception as e:
+        print(f"Error: {e}")
 
     return primary_camera_path, secondary_camera_path
 
@@ -77,7 +79,7 @@ def initialize_observation(current_target_object):
     if current_target_object.camera_settings['secondary_cam']['take_images']:
         secondary_cam_process = multiprocessing.Process(target=take_observation, args=([cameraSettingsSecondary]))
         secondary_cam_process.start()
-
+    
     return primary_cam_process, secondary_cam_process
 
 def main():
