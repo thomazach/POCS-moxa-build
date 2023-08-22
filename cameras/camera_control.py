@@ -10,14 +10,14 @@ from observational_scheduler.obs_scheduler import target
 
 def requestCameraCommand():
     relative_path = os.path.dirname(os.path.dirname(__file__))
-    with open(f"{relative_path}\pickle\current_target.pickle", "rb") as f:
+    with open(f"{relative_path}/pickle/current_target.pickle", "rb") as f:
         current_target = pickle.load(f)
     return current_target
 
 def sendTargetObjectCommand(current_target_object, cmd):
     relative_path = os.path.dirname(os.path.dirname(__file__))
     current_target_object.cmd = cmd
-    with open(f"{relative_path}\pickle\current_target.pickle", "wb") as f:
+    with open(f"{relative_path}/pickle/current_target.pickle", "wb") as f:
         pickle.dump(current_target_object, f)
 
 def get_camera_paths():
