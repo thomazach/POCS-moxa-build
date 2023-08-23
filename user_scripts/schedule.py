@@ -1,11 +1,21 @@
 #!/usr/bin/python3
-# TODO: add pretty colors to the text
+
+class bcolors:
+    HEADER = '\033[95m'
+    BLUE = '\033[34m'
+    YELLOW = '\033[33m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
 
 def main(args):
 
-    # TODO: FIX PATHS ALL SINGLE FORWARD SLASH
-    #conf_files = os.path.realpath(__file__).replace('user_scripts/schedule.py', '/conf_files/settings.yaml')
-    conf_files = os.path.realpath(__file__).replace(r'user_scripts\schedule.py', r'conf_files')
+    conf_files = os.path.realpath(__file__).replace('/user_scripts/schedule.py', '/conf_files')
 
     yesOrNo = lambda x: x == 'y' or x == 'Y' or x == 'yes' or x == 'Yes'
 
@@ -21,30 +31,30 @@ def main(args):
             if yesOrNo(response):
                 print("List of targets in this schedule:")
                 for target in schedule.keys():
-                    print(target)
-                targetToEdit = input("What target do you want to edit? ")
+                    print(bcolors.OKCYAN + target + bcolors.ENDC)
+                targetToEdit = input(f"{bcolors.WARNING}What target do you want to edit? {bcolors.ENDC}")
                 if any(validTarget == targetToEdit for validTarget in schedule.keys()):
                     print(f"List of settings for {targetToEdit}:")
                     for setting in schedule[targetToEdit].keys():
-                        print(setting)
-                    settingToEdit = input("What setting do you want to change? ")
+                        print(bcolors.OKCYAN + setting + bcolors.ENDC)
+                    settingToEdit = input(bcolors.WARNING + "What setting do you want to change? " + bcolors.ENDC)
                     if any(validSetting == settingToEdit for validSetting in schedule[targetToEdit]):
                         if settingToEdit == 'primary_cam' or settingToEdit == 'secondary_cam':
                             print(f"List of {settingToEdit} settings:")
                             for setting in schedule[targetToEdit][settingToEdit].keys():
-                                print(setting)
-                            childSetting = input("What setting do you want to change? ")
+                                print(bcolors.OKCYAN + setting + bcolors.ENDC)
+                            childSetting = input(bcolors.WARNING + "What setting do you want to change? " + bcolors.ENDC)
                             if any(validSetting == childSetting for validSetting in schedule[targetToEdit][settingToEdit].keys()):
-                                childArg = _betterInput(f"What value would you like to change {childSetting} to? ", settingType[childSetting])
+                                childArg = _betterInput(f"{bcolors.WARNING}What value would you like to change {bcolors.OKCYAN}{childSetting}{bcolors.WARNING} to? {bcolors.ENDC}", settingType[childSetting])
                                 schedule[targetToEdit][settingToEdit][childSetting] = childArg
                         else:
-                            arg = _betterInput(f"What value would you like to change {settingToEdit} to? ", settingType[settingToEdit]) 
+                            arg = _betterInput(f"{bcolors.WARNING}What value would you like to change {bcolors.OKCYAN}{settingToEdit}{bcolors.WARNING} to? {bcolors.ENDC}", settingType[settingToEdit]) 
                             schedule[targetToEdit][settingToEdit] = arg
         
             else:
                 break
             
-            response = input("Would you like to edit a target? (y/n) ")
+            response = input(bcolors.WARNING + "Would you like to edit a target? (y/n) " + bcolors.ENDC)
         
         return schedule
 
@@ -54,15 +64,15 @@ def main(args):
 
         result = None
         while result == None:
-            userInput = input(prompt) or default
+            userInput = input(bcolors.WARNING + prompt + bcolors.ENDC) or default
             if userInput:
                 try:
                     result = Type(userInput)
                 except TypeError as error:
-                    print('=INVALID= Your input was not of type ', Type)
+                    print(bcolors.YELLOW + '=INVALID= Your input was not of type ' + bcolors.ENDC, Type)
                     userInput = None
                 except Exception as error:
-                    print('=ERROR= ', error)
+                    print(bcolors.FAIL + '=ERROR= ' + bcolors.ENDC, error)
                     userInput = None
         return result
 
@@ -74,7 +84,7 @@ def main(args):
             camera = {}
             camera['num_captures'] = None
             camera['exposure_time'] = None
-            camera['take_images'] = yesOrNo(input('Do you want this camera to take images [y/n]: '))
+            camera['take_images'] = yesOrNo(input(bcolors.WARNING + 'Do you want this camera to take images [y/n]: ' + bcolors.ENDC))
             if camera['take_images']:
                 camera['num_captures'] = _betterInput('Enter # of images to capture: ', Type=int, default=1)
                 camera['exposure_time'] = _betterInput('Enter exposure time per image in seconds: ', Type=int, default=1)
@@ -100,71 +110,74 @@ def main(args):
         return attributes
 
     if args.show_active_observation:
-        # TODO: FIX PATHS ALL SINGLE FORWARD SLASH
-        with open(f"{conf_files}\settings.yaml", "r") as f:
+        with open(f"{conf_files}/settings.yaml", "r") as f:
             settings = yaml.safe_load(f)
         activeFileName = settings["TARGET_FILE"]
-        with open(f"{conf_files}\\targets\{activeFileName}") as f:
+        with open(f"{conf_files}/targets/{activeFileName}") as f:
             activeSchedule = yaml.safe_load(f)
 
         print("---------------   Summary of active schedule   ---------------")
-        print(f"File name: {activeFileName}              Number of targets: {len(activeSchedule.keys())}")
+        print(f"File name: {bcolors.OKGREEN}{activeFileName}{bcolors.ENDC}              Number of targets: {bcolors.OKGREEN}{len(activeSchedule.keys())}{bcolors.ENDC}")
         print("Target names:")
         for name in activeSchedule.keys():
-            print(f"{name}")
+            print(f"{bcolors.OKCYAN}{name}{bcolors.ENDC}")
         
         while True:
-            doDetails = input("List detailed information about a target? (y/n) ")
+            doDetails = input(f"{bcolors.WARNING}List detailed information about a target? (y/n) {bcolors.ENDC}")
             if yesOrNo(doDetails):
-                targetName = input("Enter the name of the target: ")
+                targetName = input(f"{bcolors.WARNING}Enter the name of the target: {bcolors.ENDC}")
                 if any(targets in targetName for targets in activeSchedule.keys()):
-                    print(f"Notes: {activeSchedule[targetName]['user_note']}")
-                    print(f"Priority: {activeSchedule[targetName]['priority']}")
-                    print(f"Position RA/DEC: {activeSchedule[targetName]['ra']}   {activeSchedule[targetName]['dec']}")
+                    print(f"Notes: {bcolors.OKBLUE}{activeSchedule[targetName]['user_note']}{bcolors.ENDC}")
+                    print(f"Priority: {bcolors.OKBLUE}{activeSchedule[targetName]['priority']}{bcolors.ENDC}")
+                    print(f"Position RA/DEC: {bcolors.OKBLUE}{activeSchedule[targetName]['ra']}   {activeSchedule[targetName]['dec']}{bcolors.ENDC}")
                     print("Primary Camera Settings:")
                     for setting in activeSchedule[targetName]['primary_cam'].keys():
-                        print(f"{setting}: {activeSchedule[targetName]['primary_cam'][setting]}")
+                        print(f"{setting}: {bcolors.OKBLUE}{activeSchedule[targetName]['primary_cam'][setting]}{bcolors.ENDC}")
                     print("Secondary Camera Settings:")
                     for setting in activeSchedule[targetName]['secondary_cam'].keys():
-                        print(f"{setting}: {activeSchedule[targetName]['primary_cam'][setting]}")
+                        print(f"{setting}: {bcolors.OKBLUE}{activeSchedule[targetName]['secondary_cam'][setting]}{bcolors.ENDC}")
             else:
                 break
     
-    # TODO: Test on unix system
     if args.list_target_files:
-        #out = os.popen(f"ls {conf_files}/targets/*.yaml").replace(f'{conf_files}/targets/', ' ').replace('\n', '').split()
-        out = ['observations.yaml', 'test_fields.yaml'] # TODO: Placeholder for above^ DELETE before merge
-        print("Available schedule files:")
-        for scheduleFile in out:
-            print(scheduleFile)
+        print("Available schedule files:" + bcolors.OKCYAN)
+        os.system(f'cd {conf_files}/targets; ls *.yaml')
+        print(bcolors.ENDC, end='')
 
     if args.select:
-        try:
+        file = args.select[0].replace(' ', '')
+        if os.path.isfile(f"{conf_files}/targets/{file}"):
+            try:
+                with open(f"{conf_files}/settings.yaml", "r") as f:
+                    settings = yaml.safe_load(f)
+                settings['TARGET_FILE'] = args.select[0].replace(' ', '')
+                with open(f"{conf_files}/settings.yaml", "w") as f:
+                    yaml.dump(settings, f)
 
-            with open(f"{conf_files}\\settings.yaml", "r") as f: # TODO: Replace backslashes with forward slash
-                settings = yaml.safe_load(f)
-            settings['TARGET_FILE'] = args.select[0].replace(' ', '')
-            with open(f"{conf_files}\\settings.yaml", "w") as f: # TODO: Replace backslashes with forward slash
-                yaml.dump(settings, f)
-
-        except Exception as error:
-            print("=ERROR=", error)
+            except Exception as error:
+                print(f"{bcolors.FAIL}=ERROR={bcolors.ENDC}", error)
+        else:
+            print(f"{bcolors.FAIL}=ERROR= The file name {bcolors.OKCYAN}{file}{bcolors.FAIL} isn't a file.")
     
     if args.new:
 
         if ".yaml" not in args.new[0]:
-            print("=ERROR= Specified file name must have suffix '.yaml'")
+            print(f"{bcolors.FAIL}=ERROR= Specified file name must have suffix '.yaml'{bcolors.ENDC}")
         else:
             filePath = f"{conf_files}/targets/{args.new[0].replace(' ', '')}"
-            #os.system(f"touch {filePath}") # TODO: UNCOMMENT before commit
+            os.system(f"touch {filePath}")
 
             keepGettingObservations = True
             observationsDict = {}
             while keepGettingObservations:
-                name = str(input('Name of the observation: '))
+                name = str(input(f'{bcolors.WARNING}Name of the observation: {bcolors.ENDC}'))
                 attributes = makeObservationDict()
                 observationsDict[name] = attributes
-                keepGettingObservations = yesOrNo(input('Add another target? [y/n]: '))
+                keepGettingObservations = yesOrNo(input(f'{bcolors.WARNING}Add another target? [y/n]: {bcolors.ENDC}'))
+
+            editRequest = yesOrNo(input(f'{bcolors.WARNING}Edit previous targets? [y/n]: {bcolors.ENDC}'))
+            if editRequest == True:
+                observationsDict = edit_schedule(observationsDict)
             
             with open(filePath, "w") as f:
                 yaml.dump(observationsDict, f)
@@ -172,19 +185,26 @@ def main(args):
     if args.edit:
 
         try:
-            with open(f"{conf_files}\\targets\\{args.edit[0].replace(' ', '')}", "r") as f: # TODO: Replace backslashes with forward slash
+            with open(f"{conf_files}/targets/{args.edit[0].replace(' ', '')}", "r") as f:
                 schedule = yaml.safe_load(f)
         except Exception as e:
-            print("=ERROR= ", e)
+            print(bcolors.FAIL + "=ERROR= " + bcolors.ENDC, e)
 
         schedule = edit_schedule(schedule)
-        with open(f"{conf_files}\\targets\\{args.edit[0].replace(' ', '')}", "w") as f:
+        with open(f"{conf_files}/targets/{args.edit[0].replace(' ', '')}", "w") as f:
             yaml.dump(schedule, f)
+
+    if args.delete:
+        confirm = yesOrNo(input(f"{bcolors.FAIL}Are you sure you want to permenantly delete {args.delete[0]}? [y/n]: {bcolors.ENDC}"))
+        if confirm == True:
+            os.system(f"rm {conf_files}/targets/{args.delete[0].replace(' ', '')}")
+
 
 if __name__ == "__main__":
     import argparse
     import yaml
     import os
+    import subprocess
 
     parser = argparse.ArgumentParser(description='Schedule observations.', formatter_class=argparse.RawTextHelpFormatter)
 
@@ -224,7 +244,14 @@ Example:
                         
 
 ''')
+    parser.add_argument('--delete', '--remove', '-rm', '-del', action='store', nargs=1, metavar='<schedule file to delete>.yaml', help='''\
+Remove a specified schedule file.
+Example:
+            >> schedule -rm example.yaml
+                        
+
+''')
     
-    args = parser.parse_args(['-h'])
+    args = parser.parse_args()
     main(args)
     
