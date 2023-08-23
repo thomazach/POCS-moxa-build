@@ -96,7 +96,7 @@ def makeObservationDict():
     print('Secondary Camera Settings: \n')
     secondaryCam = _makeCameraArr()
     attributes = {}
-    attributes['note'] = note
+    attributes['user_note'] = note
     attributes['priority'] = priority
     attributes['ra'] = ra
     attributes['dec'] = dec
