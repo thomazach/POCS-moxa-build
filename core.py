@@ -178,20 +178,11 @@ def main():
     test1 = _betterInput("Command: ", command, None)
     print('Mtest1: ', test1, ' \nMtype(test1): ', str(type(test1)))
 
-    # keepGettingObservations = True
-    # observationsDict = {}
-    # while keepGettingObservations:
-    #     name = str(input('Name of the observation: '))
-    #     attributes = makeObservationDict()
-    #     observationsDict[name] = attributes
-    #     keepGettingObservations = yesOrNo(input('Add another observation [y/n]: '))
-    # obs_scheduler.createObservationList(observationsDict)
-
     parentDirectory = os.getcwd()
     with open(f"{parentDirectory}/conf_files/settings.yaml", 'r') as f:
         settings = safe_load(f)
 
-    TARGETS_FILE_PATH = settings['TARGETS_FILE_PATH']
+    TARGETS_FILE_PATH = f"{parentDirectory}/conf_files/targets/{settings['TARGET_FILE']}"
     LAT_CONFIG = settings['LATITUDE']
     LON_CONFIG = settings['LONGITUDE']
     ELEVATION_CONFIG = settings['ELEVATION']
@@ -199,14 +190,16 @@ def main():
 
     print(TARGETS_FILE_PATH, LAT_CONFIG, LON_CONFIG, ELEVATION_CONFIG)
 
-    _writeToFile(WEATHER_RESULTS_TXT, 'go')
-    _writeToFile(WEATHER_RESULTS_TXT, 'true') # Temporarily need to bypass weather module until panoptes team figures out solution for weather sensor
-    while True: 
+    while True:
+
+        _writeToFile(WEATHER_RESULTS_TXT, 'go')
+        _writeToFile(WEATHER_RESULTS_TXT, 'true') # Temporarily need to bypass weather module until panoptes team figures out solution for weather sensor
         
         time.sleep(3)
         weather_results = readWeatherResults(WEATHER_RESULTS_TXT)
-        print(weather_results)
-        if weather_results == 'true':
+        isNight = astronomicalNight(UNIT_LOCATION)
+        print(f"Astronomical night: {isNight} Weather Results: {weather_results}")
+        if weather_results == 'true' and isNight == True:
             print('Safe to use')
             target_queue = obs_scheduler.getTargetQueue(TARGETS_FILE_PATH)
             while target_queue != []:
@@ -214,6 +207,9 @@ def main():
                 if not checkTargetAvailability(target.position['ra'] + target.position['dec'], UNIT_LOCATION):
                     continue
                 # tell mount controller target
+                with open("pickle/current_target.pickle", "wb") as pickleFile:
+                    pickle.dump(target, pickleFile)
+                os.system('python mount/mount_control.py')
                 # wait for mount to say complete
                 while True:
                     time.sleep(30)
@@ -232,12 +228,13 @@ def main():
 
             # when it is safe to go we need to send 
             _writeToFile(WEATHER_RESULTS_TXT, 'exit')
-            break
         else:
             print('not safe')
 
             # Things aren't safe so the mount needs to be told to cry
             # break
+        
+        time.sleep(300)
 
 if __name__ == "__main__":
     main()
