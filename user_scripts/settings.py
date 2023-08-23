@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-from schedule import bcolors
 
 def main(args):
 
@@ -33,6 +32,8 @@ if __name__ == "__main__":
     import argparse
     import os
     import yaml
+
+    from schedule import bcolors
 
     parser = argparse.ArgumentParser(description='Edit system settings.', formatter_class=argparse.RawTextHelpFormatter)
 
