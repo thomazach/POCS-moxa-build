@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+from schedule import bcolors
 
 def main(args):
 
@@ -20,9 +21,10 @@ def main(args):
         settings["DEBUG_MESSAGE_LEVEL"] = args.set_logging_level[0]
 
     if args.show:
-        print("Current system settings:")
-        print(settings)
-        print("Changes will not apply during automated operation")
+        print("---------------   Current system settings   ---------------")
+        for key in settings.keys():
+            print(f"{key} : {bcolors.OKBLUE}{settings[key]}{bcolors.ENDC}")
+        print(bcolors.YELLOW + "Changes will not apply during automated operation" + bcolors.ENDC)
 
     with open(settingsFile, "w") as f:
         yaml.dump(settings, f)

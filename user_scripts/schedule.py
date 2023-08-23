@@ -69,7 +69,7 @@ def main(args):
                 try:
                     result = Type(userInput)
                 except TypeError as error:
-                    print(bcolors.YELLOW + '=INVALID= Your input was not of type ' + bcolors.ENDC, Type)
+                    print(bcolors.FAIL + '=INVALID= Your input was not of type ' + bcolors.ENDC, Type)
                     userInput = None
                 except Exception as error:
                     print(bcolors.FAIL + '=ERROR= ' + bcolors.ENDC, error)
