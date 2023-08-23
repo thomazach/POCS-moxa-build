@@ -225,6 +225,6 @@ Example:
 
 ''')
     
-    args = parser.parse_args(['-ls'])
+    args = parser.parse_args(['-h'])
     main(args)
     
