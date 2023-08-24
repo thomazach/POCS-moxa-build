@@ -28,6 +28,7 @@ def main(args):
 
         response = 'y'
         while True:
+            response = input(bcolors.WARNING + "Would you like to edit a target? (y/n) " + bcolors.ENDC)
             if yesOrNo(response):
                 print("List of targets in this schedule:")
                 for target in schedule.keys():
@@ -53,8 +54,16 @@ def main(args):
         
             else:
                 break
+        
+        response = 'y'
+        while True:
+            response = yesOrNo(input(bcolors.WARNING + "Do you want to add another target? [y/n]: " + bcolors.ENDC))  
+            if response == True:
+                name = str(input(f'{bcolors.WARNING}Name of the observation: {bcolors.ENDC}'))
+                schedule[name] = makeObservationDict()
             
-            response = input(bcolors.WARNING + "Would you like to edit a target? (y/n) " + bcolors.ENDC)
+            else:
+                break
         
         return schedule
 
