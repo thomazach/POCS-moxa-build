@@ -6,6 +6,7 @@ import heapq
 import pickle
 import math
 import time
+import threading
 
 from yaml import safe_load
 from datetime import datetime, timezone
@@ -21,6 +22,72 @@ WEATHER_RESULTS_TXT = 'weather_results.txt'
 TARGETS_FILE_PATH = 'conf_files/test_fields.yaml'
 
 yesOrNo = lambda x: x == 'y' or x == 'Y' or x == 'yes' or x == 'Yes'
+BACKGROUND_FLAG = 0
+
+class backgroundThread (threading.Thread):
+    def __init__(self, threadName):
+        threading.Thread.__init__(self)
+        self.threadName = threadName
+
+    def run(self):
+        # put logger statement
+        parentDirectory = os.getcwd()
+        with open(f"{parentDirectory}/conf_files/settings.yaml", 'r') as f:
+            settings = safe_load(f)
+
+        TARGETS_FILE_PATH = f"{parentDirectory}/conf_files/targets/{settings['TARGET_FILE']}"
+        LAT_CONFIG = settings['LATITUDE']
+        LON_CONFIG = settings['LONGITUDE']
+        ELEVATION_CONFIG = settings['ELEVATION']
+        UNIT_LOCATION = EarthLocation(lat=LAT_CONFIG, lon=LON_CONFIG, height=ELEVATION_CONFIG * u.m)
+
+        print(TARGETS_FILE_PATH, LAT_CONFIG, LON_CONFIG, ELEVATION_CONFIG)
+
+        while True:
+
+            _writeToFile(WEATHER_RESULTS_TXT, 'go')
+            _writeToFile(WEATHER_RESULTS_TXT, 'true') # Temporarily need to bypass weather module until panoptes team figures out solution for weather sensor
+            
+            time.sleep(3)
+            weather_results = readWeatherResults(WEATHER_RESULTS_TXT)
+            isNight = astronomicalNight(UNIT_LOCATION)
+            print(f"Astronomical night: {isNight} Weather Results: {weather_results}")
+            if weather_results == 'true' and isNight == True:
+                print('Safe to use')
+                target_queue = obs_scheduler.getTargetQueue(TARGETS_FILE_PATH)
+                while target_queue != []:
+                    target = heapq.heappop(target_queue)
+                    if not checkTargetAvailability(target.position['ra'] + target.position['dec'], UNIT_LOCATION):
+                        continue
+                    # tell mount controller target
+                    with open("pickle/current_target.pickle", "wb") as pickleFile:
+                        pickle.dump(target, pickleFile)
+                    os.system('python mount/mount_control.py')
+                    # wait for mount to say complete
+                    while True:
+                        time.sleep(30)
+                        with open("pickle.current_target.pickle", "rb") as f:
+                            target = pickle.load(f)
+                        
+                        # TODO: Add safety feature that sends the mount the emergency park command if this loop has ran 10+ min longer than expected observation time (could also send raw serial)
+
+                        if target.cmd == 'observation complete':
+                            break
+
+                    # get data from camera
+                    # ask storage if full 
+                    #   if full handle or notify somehow
+                    #   else upload or store picture in storage method
+
+                # when it is safe to go we need to send 
+                _writeToFile(WEATHER_RESULTS_TXT, 'exit')
+            else:
+                print('not safe')
+
+                # Things aren't safe so the mount needs to be told to cry
+                # break
+            
+            time.sleep(300)
 
 class command:
     def __init__(self, userInput):
@@ -31,13 +98,21 @@ class command:
 
         if len(parts) == 1:
             cmd = parts[0]
+            if cmd == 'start':
+                if BACKGROUND_FLAG == 0:
+                    thread = backgroundThread('background')
+                    thread.start()
+                    BACKGROUND_FLAG.__add__(1)
+                    return
+                elif BACKGROUND_FLAG >= 1:
+                    print('background is already running')
+                else:
+                    print('An error has occured while trying to launch')
             realFile = None
             for file in os.listdir('./user_scripts'):
                 if file.split('.')[0] == cmd:
                     realFile = file
             subprocess.run('./user_scripts/' + realFile)
-        elif parts[0] == '&':
-            print('background process not in yet')
         else:
             cmd = parts[0]
             args = parts[1:]
@@ -47,7 +122,6 @@ class command:
                     realFile = file
             commandArray = ['./user_scripts/' + realFile]
             subprocess.Popen(commandArray + args, cwd=os.path.dirname(os.path.realpath(__file__)))
-            print('annoying')
 
 def _writeToFile(PATH, msg):
     file_write = open(PATH, "w")
@@ -134,7 +208,6 @@ def aboveHorizon(targetSkyCoord, unitLocation):
         print("Target is below the horizon.")
         return False
     return True
-
     
 def moonObstruction(targetSkyCoord):
     current_time = Time(datetime.now(timezone.utc))
@@ -173,68 +246,13 @@ def checkTargetAvailability(position, unitLocation):
             return False
     return True
 
+
 def main():
 
-    test1 = _betterInput("Command: ", command, None)
-    print('Mtest1: ', test1, ' \nMtype(test1): ', str(type(test1)))
+    keepGoing = 1
+    while keepGoing == 1:
+        cmd = _betterInput("Command: ", command, None)
 
-    parentDirectory = os.getcwd()
-    with open(f"{parentDirectory}/conf_files/settings.yaml", 'r') as f:
-        settings = safe_load(f)
-
-    TARGETS_FILE_PATH = f"{parentDirectory}/conf_files/targets/{settings['TARGET_FILE']}"
-    LAT_CONFIG = settings['LATITUDE']
-    LON_CONFIG = settings['LONGITUDE']
-    ELEVATION_CONFIG = settings['ELEVATION']
-    UNIT_LOCATION = EarthLocation(lat=LAT_CONFIG, lon=LON_CONFIG, height=ELEVATION_CONFIG * u.m)
-
-    print(TARGETS_FILE_PATH, LAT_CONFIG, LON_CONFIG, ELEVATION_CONFIG)
-
-    while True:
-
-        _writeToFile(WEATHER_RESULTS_TXT, 'go')
-        _writeToFile(WEATHER_RESULTS_TXT, 'true') # Temporarily need to bypass weather module until panoptes team figures out solution for weather sensor
-        
-        time.sleep(3)
-        weather_results = readWeatherResults(WEATHER_RESULTS_TXT)
-        isNight = astronomicalNight(UNIT_LOCATION)
-        print(f"Astronomical night: {isNight} Weather Results: {weather_results}")
-        if weather_results == 'true' and isNight == True:
-            print('Safe to use')
-            target_queue = obs_scheduler.getTargetQueue(TARGETS_FILE_PATH)
-            while target_queue != []:
-                target = heapq.heappop(target_queue)
-                if not checkTargetAvailability(target.position['ra'] + target.position['dec'], UNIT_LOCATION):
-                    continue
-                # tell mount controller target
-                with open("pickle/current_target.pickle", "wb") as pickleFile:
-                    pickle.dump(target, pickleFile)
-                os.system('python mount/mount_control.py')
-                # wait for mount to say complete
-                while True:
-                    time.sleep(30)
-                    with open("pickle.current_target.pickle", "rb") as f:
-                        target = pickle.load(f)
-                    
-                    # TODO: Add safety feature that sends the mount the emergency park command if this loop has ran 10+ min longer than expected observation time (could also send raw serial)
-
-                    if target.cmd == 'observation complete':
-                        break
-
-                # get data from camera
-                # ask storage if full 
-                #   if full handle or notify somehow
-                #   else upload or store picture in storage method
-
-            # when it is safe to go we need to send 
-            _writeToFile(WEATHER_RESULTS_TXT, 'exit')
-        else:
-            print('not safe')
-
-            # Things aren't safe so the mount needs to be told to cry
-            # break
-        
-        time.sleep(300)
 
 if __name__ == "__main__":
     main()
