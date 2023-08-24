@@ -1,5 +1,4 @@
 #!usr/bin/python3
-# TODO: Add color
 
 def main(args):
     
