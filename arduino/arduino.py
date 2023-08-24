@@ -2,6 +2,7 @@ import serial
 import time
 import pickle
 import os
+import sys
 
 '''
 Arduino expects:
@@ -23,6 +24,12 @@ RELAY_2 ---> Fan
 RELAY_3 ---> Cameras
 RELAY_4 ---> Mount
 '''
+
+parentDirectory = os.path.realpath(__file__).replace('/arduino/arduino.py', '')
+sys.path.append(parentDirectory)
+
+from user_scripts.schedule import bcolors
+
 DEFAULT_ARDUINO_PORT = '/dev/ttyACM0'
 
 def serialize_commands(readable_command: str):
@@ -50,7 +57,7 @@ def serialize_commands(readable_command: str):
                     cmd_arg = 0
                 case "unassigned":
                     cmd_arg = 1
-                    print("WARNING: Referenced arduino pin is not attached to hardware")
+                    print(bcolors.YELLOW + "=WARN= Referenced arduino pin is not attached to hardware." + bcolors.ENDC)
                 case "fan":
                     cmd_arg = 2
                 case "cameras":
@@ -78,13 +85,13 @@ def listen(port):
                 response.append(int(entry))
             return response
         elif output == "#":
-            return "Executed Command Successfully"
+            return bcolors.OKGREEN + "Executed Command Successfully" + bcolors.ENDC
         elif output == "r":
-            print("Arduino setup complete. Ready for commands.")
+            print(bcolors.OKGREEN + "Arduino setup complete. Ready for commands." + bcolors.ENDC)
             return True
         
     elif output.count("|") != 0 and output.count("|") != 2:
-        print('WARNING: Arduino serial communication error. Expected command response within two "|" characters.')
+        return bcolors.YELLOW + 'WARNING: Arduino serial communication error. Expected command response within two "|" characters.' + bcolors.ENDC
     
     else:
         print("Unexpected serial response. Possible Arduino serial communication timeout reached.")
@@ -103,7 +110,10 @@ def main():
             with open(pickleFilePath, "rb") as f:
                 commandDict = pickle.load(f)
 
-            if commandDict['cmd'].lower() == "off":
+            if commandDict['cmd'].lower() == "off" and commandDict['execute'] == True:
+                commandDict['execute'] = False
+                with open(pickleFilePath, "wb") as f:
+                    pickle.dump(commandDict, f)
                 On = False
                 continue
 

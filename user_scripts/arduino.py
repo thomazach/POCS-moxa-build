@@ -1,35 +1,35 @@
 #!usr/bin/python3
+# TODO: Add color
 
 def main(args):
     
-    # TODO: FIX PATHS ALL SINGLE FORWARD SLASH
-    #conf_files = os.path.realpath(__file__).replace('user_scripts/arduino.py', '')
-    parentDir = os.path.realpath(__file__).replace(r'user_scripts\arduino.py', '')
+    parentDir = os.path.realpath(__file__).replace('/user_scripts/arduino.py', '')
 
     def writeRead(cmd):
-        with open(f"{parentDir}pickle/arduino_cmd.pickle", "wb") as f:
+        with open(f"{parentDir}/pickle/arduino_cmd.pickle", "wb") as f:
             pickle.dump(cmd, f)
-        time.sleep(3)
-        with open(f"{parentDir}pickle/arduino_cmd.pickle", "rb") as f:
+        time.sleep(2.1)
+        with open(f"{parentDir}/pickle/arduino_cmd.pickle", "rb") as f:
             cmdDict = pickle.load(f)
-            if cmdDict['reponse'] != "waiting for response":
-                print(cmdDict['reponse'])
-            else:
-                print("=ERROR= Did not recieve response from arduino before timeout")
+            if cmdDict['response'] != "waiting for response":
+                print(cmdDict['response'])
+            elif cmdDict['execute'] == True:
+                print(bcolors.FAIL +"=ERROR= Did not recieve response from arduino before timeout" + bcolors.ENDC)
 
     if args.listen:
         try:
-            print("hip hip")
-            os.system(f"python {parentDir}arduino/arduino.py")
+            os.system(f"python {parentDir}/arduino/arduino.py")
         except Exception as error:
-            print("=ERROR=", error)
+            print(bcolors.FAIL + "=ERROR=", error)
+            print(bcolors.ENDC, end='')
 
     if args.off:
-        cmd = {'cmd': "off", 'execute': False, 'response': "waiting for response"}
+        cmd = {'cmd': "off", 'execute': True, 'response': "waiting for response"}
         writeRead(cmd)
+        print(bcolors.OKGREEN + "Arduino listener shut down." + bcolors.OKGREEN)
     
     if args.read_weather:
-        print("=WARN= read_weather hasn't been implemented yet.")
+        print(bcolors.YELLOW + "=WARN= read_weather hasn't been implemented yet." + bcolors.ENDC)
     
     if args.cameras:
         cmd = {'cmd': f"cameras {args.cameras}", 'execute': True, 'response': "waiting for response"}
@@ -44,7 +44,7 @@ def main(args):
         writeRead(cmd)
 
     if args.weather_station:
-        cmd = {'cmd': f"weather {args.weather}", 'execute': True, 'response': "waiting for response"}
+        cmd = {'cmd': f"weather {args.weather_station}", 'execute': True, 'response': "waiting for response"}
         writeRead(cmd)
     
     if args.unassigned:
@@ -52,17 +52,16 @@ def main(args):
         writeRead(cmd)
 
     if args.current:
-        cmd = {'cmd': f"unassigned {args.unassigned}", 'execute': True, 'response': "waiting for response"}
+        cmd = {'cmd': f"current", 'execute': True, 'response': "waiting for response"}
         writeRead(cmd)
-
-
-            
 
 if __name__ == "__main__":
     import argparse
     import os 
     import pickle
     import time
+
+    from schedule import bcolors
 
     parser = argparse.ArgumentParser(description="Control the arduino.", formatter_class=argparse.RawTextHelpFormatter)
     arduino_cmds = parser.add_mutually_exclusive_group()
@@ -109,5 +108,5 @@ Measure the current on each arduino relay and print the results.
                               
 ''')
 
-    args = parser.parse_args(['-h'])
+    args = parser.parse_args()
     main(args)
