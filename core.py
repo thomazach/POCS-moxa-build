@@ -112,7 +112,7 @@ class command:
             for file in os.listdir('./user_scripts'):
                 if file.split('.')[0] == cmd:
                     realFile = file
-            subprocess.run('./user_scripts/' + realFile)
+            os.system('./user_scripts/' + realFile)
         else:
             cmd = parts[0]
             args = parts[1:]
@@ -120,8 +120,7 @@ class command:
             for file in os.listdir('./user_scripts'):
                 if file.split('.')[0] == cmd:
                     realFile = file
-            commandArray = ['./user_scripts/' + realFile]
-            subprocess.Popen(commandArray + args, cwd=os.path.dirname(os.path.realpath(__file__)))
+            os.system('./user_scripts/' + realFile + userInput.replace(cmd, ''))
 
 def _writeToFile(PATH, msg):
     file_write = open(PATH, "w")
