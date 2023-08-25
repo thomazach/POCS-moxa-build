@@ -8,13 +8,13 @@ def main(args):
         settings = yaml.safe_load(f)
 
     if args.latitude:
-        settings["LATITUDE"] = args.latitude[0]
+        settings["LATITUDE"] = str(args.latitude[0])
     
     if args.longitude:
-        settings["LONGITUDE"] = args.longitude[0]
+        settings["LONGITUDE"] = str(args.longitude[0])
 
     if args.elevation:
-        settings["ELEVATION"] = args.elevation[0]
+        settings["ELEVATION"] = float(args.elevation[0])
 
     if args.set_logging_level:
         settings["DEBUG_MESSAGE_LEVEL"] = args.set_logging_level[0]

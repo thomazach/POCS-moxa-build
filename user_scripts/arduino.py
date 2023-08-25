@@ -1,8 +1,8 @@
-#!usr/bin/python3
+#!/usr/bin/python3
 
 def main(args):
     
-    parentDir = os.path.realpath(__file__).replace('/user_scripts/arduino.py', '')
+    parentDir = os.path.dirname(__file__).replace('/user_scripts', '')
 
     def writeRead(cmd):
         with open(f"{parentDir}/pickle/arduino_cmd.pickle", "wb") as f:
@@ -25,7 +25,7 @@ def main(args):
     if args.off:
         cmd = {'cmd': "off", 'execute': True, 'response': "waiting for response"}
         writeRead(cmd)
-        print(bcolors.OKGREEN + "Arduino listener shut down." + bcolors.OKGREEN)
+        print(bcolors.OKGREEN + "Arduino listener shut down." + bcolors.ENDC)
     
     if args.read_weather:
         print(bcolors.YELLOW + "=WARN= read_weather hasn't been implemented yet." + bcolors.ENDC)
