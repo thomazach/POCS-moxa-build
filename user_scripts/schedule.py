@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 class bcolors:
-    HEADER = '\033[95m'
+    PURPLE = '\033[95m'
     BLUE = '\033[34m'
     YELLOW = '\033[33m'
     OKBLUE = '\033[94m'

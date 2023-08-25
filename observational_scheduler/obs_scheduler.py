@@ -3,8 +3,6 @@ import heapq
 import yaml
 from yaml.loader import SafeLoader
 
-DATA_FILE_DEFAULT_PATH = os.path.dirname(__file__).replace('observational_scheduler', 'conf_files/observations.yaml')#'conf_files/test_fields.yaml')
-
 class target:
 
     def __init__(self, name, position, camera_settings, priority = 0, observation_notes = None, command = 'slew to target')->None:
@@ -42,7 +40,7 @@ def getTargetQueue(PATH):
         dataDict = yaml.load(file, Loader=SafeLoader)
     for key, entry in dataDict.items():
         name = key
-        obsNote = entry['note']
+        obsNote = entry['user_note']
         prio = entry['priority']
         position = {'ra': entry['ra'], 'dec' :entry['dec']}
         cameraSettings = {'primary_cam' : entry['primary_cam'], 'secondary_cam' : entry['secondary_cam']}
@@ -51,7 +49,7 @@ def getTargetQueue(PATH):
         heapq.heappush(pQueue, target(name, position, cameraSettings, priority=prio, observation_notes=obsNote, command=command))
     return pQueue
 
-def getTargetList(PATH = DATA_FILE_DEFAULT_PATH):
+def getTargetList(PATH):
     result = []
     with open(PATH) as file:
         dataDict = yaml.load(file, Loader=SafeLoader)

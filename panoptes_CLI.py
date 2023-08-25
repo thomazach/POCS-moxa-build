@@ -65,7 +65,7 @@ def _betterInput(prompt, Type = str, default = None):
 def main():
 
     while True:
-        cmd = _betterInput("Command: ", command, None)
+        cmd = _betterInput(">> ", command, None)
 
 if __name__ == '__main__':
     main()
