@@ -42,8 +42,6 @@ class command:
         else:
             execBlocking(cmdString)
 
-        
-
 def _betterInput(prompt, Type = str, default = None):
     #TODO: Implement the mountCommand class so that I can also have it 
     #      handled here

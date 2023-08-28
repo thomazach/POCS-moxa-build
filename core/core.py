@@ -4,7 +4,6 @@ import heapq
 import pickle
 import math
 import time
-import threading
 
 from yaml import safe_load
 from datetime import datetime, timezone
