@@ -20,6 +20,7 @@ sys.path.append(PARENT_DIRECTORY)
 WEATHER_RESULTS_TXT = f"{PARENT_DIRECTORY}/weather_results.txt"
 
 from observational_scheduler import obs_scheduler
+from user_scripts.schedule import bcolors
 
 def _writeToFile(PATH, msg):
     file_write = open(PATH, "w")
@@ -45,14 +46,14 @@ def astronomicalNight(unitLocation):
     if float(sunAltAz.alt.deg) < -18:
         return True
 
-    print("It isn't astronomical night yet.")
+    print(bcolors.OKCYAN + "It isn't astronomical night yet." + bcolors.ENDC)
     return False
 
 def aboveHorizon(targetSkyCoord, unitLocation):
     targetAltAz = convertRaDecToAltAZ(targetSkyCoord, unitLocation)
     
     if float(targetAltAz.alt.deg) < 0:
-        print("Target is below the horizon.")
+        print(bcolors.OKCYAN + "Target is below the horizon." + bcolors.ENDC)
         return False
     return True
 
@@ -77,7 +78,7 @@ def moonObstruction(targetSkyCoord):
     angular_diff = math.acos(math.sin(moon_dec) * math.sin(target_dec) + math.cos(moon_dec) * math.cos(target_dec) * math.cos(target_ra - moon_ra))
 
     if angular_diff < moonAvoidanceRadius.rad:
-        print("Current target obstructed by moon.")
+        print(bcolors.OKCYAN + "Current target obstructed by moon." + bcolors.ENDC)
         return False
     
     return True
@@ -94,7 +95,7 @@ def checkTargetAvailability(position, unitLocation):
     return True
 
 def main():
-    print("System is now in automated observation state.")
+    print(bcolors.PURPLE + "\nSystem is now in automated observation state." + bcolors.ENDC)
     # put logger statement
     with open(f"{PARENT_DIRECTORY}/conf_files/settings.yaml", 'r') as f:
         settings = safe_load(f)
@@ -130,22 +131,25 @@ def main():
         isNight = astronomicalNight(UNIT_LOCATION)
 
         if weather_results == 'true' and isNight == True:
-            print(f"Starting observation using schedule file: {settings['TARGET_FILE']}")
+            print(f"{bcolors.OKGREEN}Starting observation using schedule file: {bcolors.OKCYAN}{settings['TARGET_FILE']}{bcolors.ENDC}")
             target_queue = obs_scheduler.getTargetQueue(TARGETS_FILE_PATH)
             while target_queue != []:
                 target = heapq.heappop(target_queue)
+                print(f"{bcolors.OKCYAN}Checking observation conditions of the current target: {target.name}.{bcolors.ENDC}")
                 if not checkTargetAvailability(target.position['ra'] + target.position['dec'], UNIT_LOCATION):
+                    print(bcolors.OKCYAN + "Moving to next target in schedule file." + bcolors.ENDC)
                     continue
                 # tell mount controller target
                 with open(f"{PARENT_DIRECTORY}/pickle/current_target.pickle", "wb") as pickleFile:
                     pickle.dump(target, pickleFile)
-                os.system(f'python {PARENT_DIRECTORY}/mount/mount_control.py')
+                os.system(f'python3 {PARENT_DIRECTORY}/mount/mount_control.py')
                 # wait for mount to say complete
                 while True:
                     time.sleep(30)
                     with open(f"{PARENT_DIRECTORY}/pickle/current_target.pickle", "rb") as f:
                         target = pickle.load(f)
                     
+                    # TODO: Add safety feature for weather checking & astronomical night checking
                     # TODO: Add safety feature that sends the mount the emergency park command if this loop has ran 10+ min longer than expected observation time (could also send raw serial)
 
                     if target.cmd == 'observation complete':
@@ -159,7 +163,7 @@ def main():
             # when it is safe to go we need to send 
             _writeToFile(WEATHER_RESULTS_TXT, 'exit')
         else:
-            print('not safe')
+            print(bcolors.OKCYAN + "Observation conditions not met. Trying again in 5 minutes." + bcolors.ENDC)
 
             # Things aren't safe so the mount needs to be told to cry
             # break
@@ -169,7 +173,7 @@ def main():
     with open(f"{PARENT_DIRECTORY}/pickle/system_info.pickle", "wb") as f:
                 pickle.dump(systemInfo, f)
     
-    print("Exited automated observation state. Resting.")
+    print(bcolors.PURPLE + "\nExited automated observation state. Resting." + bcolors.ENDC)
 
 if __name__ == '__main__':
     main()

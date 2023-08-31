@@ -57,7 +57,7 @@ def serialize_commands(readable_command: str):
                     cmd_arg = 0
                 case "unassigned":
                     cmd_arg = 1
-                    print(bcolors.YELLOW + "=WARN= Referenced arduino pin is not attached to hardware." + bcolors.ENDC)
+                    print(bcolors.YELLOW + "\n=WARN= Referenced arduino pin is not attached to hardware." + bcolors.ENDC)
                 case "fan":
                     cmd_arg = 2
                 case "cameras":
@@ -85,9 +85,9 @@ def listen(port):
                 response.append(int(entry))
             return response
         elif output == "#":
-            return bcolors.OKGREEN + "Executed Command Successfully" + bcolors.ENDC
+            return bcolors.OKGREEN + "\nExecuted Command Successfully" + bcolors.ENDC
         elif output == "r":
-            print(bcolors.OKGREEN + "Arduino setup complete. Ready for commands." + bcolors.ENDC)
+            print(bcolors.OKGREEN + "\nArduino setup complete. Ready for commands." + bcolors.ENDC)
             return True
         
     elif output.count("|") != 0 and output.count("|") != 2:

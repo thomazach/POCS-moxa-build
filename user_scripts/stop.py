@@ -16,7 +16,7 @@ def main(args):
             pickle.dump(systemInfo, f)
         
         # TODO: Add logging
-        print(bcolors.PURPLE + "Sent shutdown request to the core module." + bcolors.ENDC)
+        print(bcolors.PURPLE + "Sent shutdown request to the core module. Shutdown response should occur in less than 5 minutes." + bcolors.ENDC)
     else:
         print(bcolors.YELLOW + " =WARN= Not in automated observation state." + bcolors.ENDC)
 

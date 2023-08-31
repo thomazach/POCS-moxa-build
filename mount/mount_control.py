@@ -19,12 +19,15 @@ def get_mount_port():
     usbList.remove('')
 
     for usbPort in usbList:
-        with serial.Serial(usbPort, 9600, timeout=3) as mount:
+        print(usbPort)
+        with serial.Serial(usbPort, 9600, timeout=10) as mount:
             mount.write(b':MountInfo#')
             out = mount.read(4)
+            print(out)
             if out == b'0030':
-                return usbPort
-
+                return mount
+    
+    raise Exception("Failed to find mount. Possibly bad serial communication. Required mount for this software is the iEQ30Pro from iOptron.")
 
 def getCurrentSkyCoord(port):
     ### Returns a SkyCoord object of whatever the mount thinks it's currently pointing at (polar alignment required) ###
@@ -38,14 +41,9 @@ def getCurrentSkyCoord(port):
 
 def connect_to_mount():
 
-    mountSerialPort = serial.Serial(get_mount_port(), 9600, timeout=30, parity='N')
-    mountSerialPort.open()    
-
-    # Verify that the mount is communicating as expected
-    mountSerialPort.write(b':MountInfo#')
-    modelNumber = mountSerialPort.read(4)
-    if modelNumber != b'0030':
-        raise Exception("Incorrect model number: Bad serial communication. Required mount for this software is the iEQ30Pro from iOptron.")
+    mountSerialPort = get_mount_port()
+    if not mountSerialPort.is_open():
+                mountSerialPort.open()
     
     # Set the mount to slew at max speed, which is 1440 x Sidereal
     mountSerialPort.write(b':SR9#')
@@ -58,13 +56,13 @@ def connect_to_mount():
     # Check that the slewing rate is its slowest value for max accuracy, and set it if it isn't
     mountSerialPort.write(b':GSR#')
     slewingSpeed = mountSerialPort.read(2)
-    if slewingSpeed != b'7#':
-        print("Incorrect slewing rate, attempting to set it to 256x sidereal")
-        mountSerialPort.write(b':MSR7#')
+    if slewingSpeed != b'9#':
+        print("Incorrect slewing rate, attempting to set it to 1440x sidereal")
+        mountSerialPort.write(b':MSR9#')
         if mountSerialPort.read(1) == b'1':
             print("Succesfully updated slewing rate.")
         else:
-            raise Exception("Problem setting sidereal tracking rate to 256x sidereal")
+            raise Exception("Problem setting sidereal tracking rate to 1440x sidereal")
         
         return mountSerialPort, currentCoordinates
     
@@ -201,7 +199,7 @@ def main():
                     RA_tuple, DEC_tuple = create_movement_commands(START_COORDINATES, SkyCoord(current_target.position['ra'], current_target.position['dec'], unit=(u.hourangle, u.deg)))
                     execute_movement_commands(mount_port, RA_tuple, DEC_tuple)
                     sendTargetObjectCommand(current_target, 'take images')
-                    os.system(f'{parentPath}/cameras/camera_control.py')
+                    os.system(f'python3 {parentPath}/cameras/camera_control.py')
 
                 case 'park':
                     print("Parking the mount.")
@@ -230,4 +228,6 @@ def main():
                     continue
 
 if __name__ == '__main__':
-    main()
+    port = get_mount_port()
+    print(port)
+    #main()

@@ -17,7 +17,7 @@ def main(args):
 
     if args.listen:
         try:
-            os.system(f"python {parentDir}/arduino/arduino.py")
+            os.system(f"python3 {parentDir}/arduino/arduino.py")
         except Exception as error:
             print(bcolors.FAIL + "=ERROR=", error)
             print(bcolors.ENDC, end='')
