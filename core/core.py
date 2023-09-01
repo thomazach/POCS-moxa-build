@@ -4,6 +4,7 @@ import heapq
 import pickle
 import math
 import time
+import threading
 
 from yaml import safe_load
 from datetime import datetime, timezone
@@ -94,34 +95,15 @@ def checkTargetAvailability(position, unitLocation):
             return False
     return True
 
-def main():
-    print(bcolors.PURPLE + "\nSystem is now in automated observation state." + bcolors.ENDC)
-    # put logger statement
-    with open(f"{PARENT_DIRECTORY}/conf_files/settings.yaml", 'r') as f:
-        settings = safe_load(f)
+def POCSMainLoop(UNIT_LOCATION, TARGETS_FILE_PATH, settings):
+    # The bread and butter of core. Responsible for sending commands to mount and
+    # deciding what to observe. Its a function so that it can be threaded. This allows
+    # the panoptes-CLI stop command to stop the observation process quickly without having
+    # to wait for the condition check loop which is 5 minutes.
+    
+    global doRun
 
-    TARGETS_FILE_PATH = f"{PARENT_DIRECTORY}/conf_files/targets/{settings['TARGET_FILE']}"
-    LAT_CONFIG = settings['LATITUDE']
-    LON_CONFIG = settings['LONGITUDE']
-    ELEVATION_CONFIG = settings['ELEVATION']
-    UNIT_LOCATION = EarthLocation(lat=LAT_CONFIG, lon=LON_CONFIG, height=ELEVATION_CONFIG * u.m)
-
-    while True:
-
-        # Graceful on off switch
-        with open(f"{PARENT_DIRECTORY}/pickle/system_info.pickle", "rb") as f:
-            systemInfo = pickle.load(f)
-        
-        if systemInfo['desired_state'] == 'on' and systemInfo['state'] == 'off':
-            systemInfo['state'] = 'on'
-            with open(f"{PARENT_DIRECTORY}/pickle/system_info.pickle", "wb") as f:
-                pickle.dump(systemInfo, f)
-
-        if systemInfo['desired_state'] == 'off' and systemInfo['state'] == 'on':
-            systemInfo['state'] = 'off'
-            # TODO: send mount and cameras appropriate pickle cmd to exit with grace
-            # Wait for response
-            break
+    while doRun:
 
         _writeToFile(WEATHER_RESULTS_TXT, 'go')
         _writeToFile(WEATHER_RESULTS_TXT, 'true') # Temporarily need to bypass weather module until panoptes team figures out solution for weather sensor
@@ -169,6 +151,40 @@ def main():
             # break
         
         time.sleep(300)
+
+doRun = True
+def main():
+    print(bcolors.PURPLE + "\nSystem is now in automated observation state." + bcolors.ENDC)
+    # put logger statement
+    with open(f"{PARENT_DIRECTORY}/conf_files/settings.yaml", 'r') as f:
+        settings = safe_load(f)
+
+    TARGETS_FILE_PATH = f"{PARENT_DIRECTORY}/conf_files/targets/{settings['TARGET_FILE']}"
+    LAT_CONFIG = settings['LATITUDE']
+    LON_CONFIG = settings['LONGITUDE']
+    ELEVATION_CONFIG = settings['ELEVATION']
+    UNIT_LOCATION = EarthLocation(lat=LAT_CONFIG, lon=LON_CONFIG, height=ELEVATION_CONFIG * u.m)
+
+    while True:
+        # Graceful on off switch
+        with open(f"{PARENT_DIRECTORY}/pickle/system_info.pickle", "rb") as f:
+            systemInfo = pickle.load(f)
+        
+        if systemInfo['desired_state'] == 'on' and systemInfo['state'] == 'off':
+            loop = threading.Thread(target=POCSMainLoop, args=[UNIT_LOCATION, TARGETS_FILE_PATH, settings]).start()
+            systemInfo['state'] = 'on'
+            with open(f"{PARENT_DIRECTORY}/pickle/system_info.pickle", "wb") as f:
+                pickle.dump(systemInfo, f)
+
+        if systemInfo['desired_state'] == 'off' and systemInfo['state'] == 'on':
+            global doRun
+            doRun = False
+            systemInfo['state'] = 'off'
+            # TODO: send mount and cameras appropriate pickle cmd to exit with grace
+            # Wait for response
+            break
+
+        time.sleep(5)
 
     with open(f"{PARENT_DIRECTORY}/pickle/system_info.pickle", "wb") as f:
                 pickle.dump(systemInfo, f)
