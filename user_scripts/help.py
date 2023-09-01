@@ -5,6 +5,8 @@ def main():
     print(bcolors.OKCYAN + "arduino" + bcolors.ENDC)
     print(bcolors.OKCYAN + "schedule" + bcolors.ENDC)
     print(bcolors.OKCYAN + "settings" + bcolors.ENDC)
+    print(bcolors.OKCYAN + "start" + bcolors.ENDC)
+    print(bcolors.OKCYAN + "stop" + bcolors.ENDC)
     print("USAGE:")
     print('''\
 Add a "-h" argument to the end of a command to get detailed information about its arguments.
