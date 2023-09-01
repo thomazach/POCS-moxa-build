@@ -7,7 +7,7 @@ import time
 import threading
 
 from yaml import safe_load
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from astropy import units as u
 from astropy.time import Time
@@ -116,6 +116,7 @@ def POCSMainLoop(UNIT_LOCATION, TARGETS_FILE_PATH, settings):
             print(f"{bcolors.OKGREEN}Starting observation using schedule file: {bcolors.OKCYAN}{settings['TARGET_FILE']}{bcolors.ENDC}")
             target_queue = obs_scheduler.getTargetQueue(TARGETS_FILE_PATH)
             while target_queue != []:
+                global target
                 target = heapq.heappop(target_queue)
                 print(f"{bcolors.OKCYAN}Checking observation conditions of the current target: {target.name}.{bcolors.ENDC}")
                 if not checkTargetAvailability(target.position['ra'] + target.position['dec'], UNIT_LOCATION):
@@ -126,8 +127,8 @@ def POCSMainLoop(UNIT_LOCATION, TARGETS_FILE_PATH, settings):
                     pickle.dump(target, pickleFile)
                 os.system(f'python3 {PARENT_DIRECTORY}/mount/mount_control.py')
                 # wait for mount to say complete
-                while True:
-                    time.sleep(30)
+                while doRun:
+                    time.sleep(5)
                     with open(f"{PARENT_DIRECTORY}/pickle/current_target.pickle", "rb") as f:
                         target = pickle.load(f)
                     
@@ -135,6 +136,7 @@ def POCSMainLoop(UNIT_LOCATION, TARGETS_FILE_PATH, settings):
                     # TODO: Add safety feature that sends the mount the emergency park command if this loop has ran 10+ min longer than expected observation time (could also send raw serial)
 
                     if target.cmd == 'observation complete':
+                        print(bcolors.OKGREEN + f"Observation of {target.name} complete!" + bcolors.ENDC)
                         break
 
                 # get data from camera
@@ -150,9 +152,15 @@ def POCSMainLoop(UNIT_LOCATION, TARGETS_FILE_PATH, settings):
             # Things aren't safe so the mount needs to be told to cry
             # break
         
-        time.sleep(300)
+        nextConditionCheck = datetime.now() + timedelta(minutes=5)
+        while doRun:
+            if nextConditionCheck <= datetime.now():
+                break
+            time.sleep(1)
+            
 
 doRun = True
+target = None
 def main():
     print(bcolors.PURPLE + "\nSystem is now in automated observation state." + bcolors.ENDC)
     # put logger statement
@@ -178,10 +186,17 @@ def main():
 
         if systemInfo['desired_state'] == 'off' and systemInfo['state'] == 'on':
             global doRun
+            global target
+
             doRun = False
+
+            if (target is not None) and (target.cmd != 'observation complete'):
+                target.cmd = 'park'
+                with open(f"{PARENT_DIRECTORY}/pickle/current_target.pickle", "wb") as pickleFile:
+                        print(target.cmd)
+                        pickle.dump(target, pickleFile)
+                
             systemInfo['state'] = 'off'
-            # TODO: send mount and cameras appropriate pickle cmd to exit with grace
-            # Wait for response
             break
 
         time.sleep(5)

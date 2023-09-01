@@ -89,7 +89,7 @@ def main():
             primaryCamProc, secondaryCamProc = initialize_observation(current_target)
 
             while True:
-                # Method to detect if both camera processes or running
+                # Method to detect if both camera processes are running
                 primaryCamProc.join(timeout=0)
                 secondaryCamProc.join(timeout=0)
                 if not (primaryCamProc.is_alive() or secondaryCamProc.is_alive()):
@@ -101,6 +101,8 @@ def main():
                     case 'emergency park':
                         primaryCamProc.terminate()
                         secondaryCamProc.terminate()
+                        break
+                    case 'parked':
                         break
 
 if __name__ == '__main__':
