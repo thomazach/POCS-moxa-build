@@ -1,5 +1,6 @@
 import os
 import sys
+import subprocess
 import heapq
 import pickle
 import math
@@ -125,7 +126,7 @@ def POCSMainLoop(UNIT_LOCATION, TARGETS_FILE_PATH, settings):
                 # tell mount controller target
                 with open(f"{PARENT_DIRECTORY}/pickle/current_target.pickle", "wb") as pickleFile:
                     pickle.dump(target, pickleFile)
-                os.system(f'python3 {PARENT_DIRECTORY}/mount/mount_control.py')
+                subprocess.Popen(['python3', f'{PARENT_DIRECTORY}/mount/mount_control.py'])
                 # wait for mount to say complete
                 while doRun:
                     time.sleep(5)
