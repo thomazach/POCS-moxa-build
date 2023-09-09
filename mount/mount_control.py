@@ -94,14 +94,15 @@ def slewToTarget(coordinates, mountSerialPort):
     if not mountSerialPort.is_open:
         mountSerialPort.open()
     mountSerialPort.write(b':MH#')
+    _ = mountSerialPort.read()
 
     time.sleep(20)
 
     if not mountSerialPort.is_open:
         mountSerialPort.open()
     mountSerialPort.write(b':SZP#')
+    _ = mountSerialPort.read()
 
-    mountSerialPort.reset_input_buffer()
     currentCordinates = getCurrentSkyCoord(mountSerialPort)
 
     RADifference = (coordinates.ra.deg - currentCordinates.ra.deg + 180) % 360 - 180
@@ -129,12 +130,13 @@ def slewToTarget(coordinates, mountSerialPort):
         
         if ra_start_time + ra_time <= time.time():
             mountSerialPort.write(b':qR#')
+            _ = mountSerialPort.read()
             print(f"Sent serial command ':qR#'. Stoped slewing RA axis with an execution time of {time.time() - ra_start_time} seconds")
             break
     mountSerialPort.write(b':ST1#')
+    _ = mountSerialPort.read()
     print("Tracking started on RA axis.")
 
-    mountSerialPort.reset_input_buffer()
     currentCordinates = getCurrentSkyCoord(mountSerialPort)
 
     DECDifference = coordinates.dec.deg - currentCordinates.dec.deg
@@ -157,6 +159,7 @@ def slewToTarget(coordinates, mountSerialPort):
 
             if dec_start_time + dec_time <= time.time():
                 mountSerialPort.write(b':qD#')
+                _ = mountSerialPort.read()
                 print(f"Sent serial command ':qD#'. Stopped DEC slewing with an execution time of {time.time() - dec_start_time} seconds")
                 break
 
@@ -198,13 +201,14 @@ def main():
             case 'slew to target':
                 print("System attempting to slew to target...")
                 mount_port.write(b':MP0#') # command has no effect if already unparked
-                RA_tuple, DEC_tuple = slewToTarget(SkyCoord(current_target.position['ra'], current_target.position['dec'], unit=(u.hourangle, u.deg)), mount_port)
+                _ = mount_port.read()
+                slewToTarget(SkyCoord(current_target.position['ra'], current_target.position['dec'], unit=(u.hourangle, u.deg)), mount_port)
                 sendTargetObjectCommand(current_target, 'take images')
                 os.system(f'python {parentPath}/cameras/camera_control.py')
 
             case 'park':
                 print("Parking the mount.")
-                park(mount_port)
+                park(mount_port, UNIT_LOCATION)
                 sendTargetObjectCommand(current_target, 'parked')
                 time.sleep(2)
                 mount_port.close()
@@ -212,7 +216,7 @@ def main():
                 
             case 'emergency park':
                 print("Parking the mount and aborting observation of this target")
-                park(mount_port)
+                park(mount_port, UNIT_LOCATION)
                 sendTargetObjectCommand(current_target, 'emergency parked')
 
             case 'close mount serial port':
@@ -221,7 +225,7 @@ def main():
 
             case 'observation complete':
                 print(f"Done looking at {current_target.name}. Parking the mount.")
-                park(mount_port)
+                park(mount_port, UNIT_LOCATION)
                 sendTargetObjectCommand(current_target, 'parked')
                 mount_port.close()
                 break

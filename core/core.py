@@ -49,7 +49,7 @@ def astronomicalNight(unitLocation):
         return True
 
     print(bcolors.OKCYAN + "It isn't astronomical night yet." + bcolors.ENDC)
-    return False
+    return True # TODO: Make false
 
 def aboveHorizon(targetSkyCoord, unitLocation):
     targetAltAz = convertRaDecToAltAZ(targetSkyCoord, unitLocation)

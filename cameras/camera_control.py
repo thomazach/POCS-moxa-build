@@ -26,8 +26,12 @@ def get_camera_paths():
     out = subprocess.run(["gphoto2", "--auto-detect"], stdout=subprocess.PIPE)
     gphotoString = out.stdout.decode('utf-8')
 
+    for char in [' ', '-', 'Model', 'Port', '\n']:
+        gphotoString = gphotoString.replace(char, '')
+
     # TODO: Make it so that it looks for the characters after 'usb:' so that camera model name 
     # does not effect the functionality of the system
+    usbIndex = None
     cameraPaths = []
     while not usbIndex == -1:
         usbIndex = gphotoString.find("usb")
@@ -35,14 +39,15 @@ def get_camera_paths():
         gphotoString = gphotoString[usbIndex+11:]
     cameraPaths = list(filter(None, cameraPaths))
 
+    print(cameraPaths)
+
     try:
         primary_camera_path, secondary_camera_path = cameraPaths
+        return primary_camera_path, secondary_camera_path
     except ValueError:
         print("Issue detecting cameras. Check power, camera settings, and the output of 'gphoto2 --auto-detect'")
     except Exception as e:
         print("=ERROR=", e)
-
-    return primary_camera_path, secondary_camera_path
 
 def take_observation(cameraSettings, iso=1):
     cam_type, camera_path, num_captures, exposure_time, observation_dir, directoryPath = cameraSettings
@@ -58,6 +63,9 @@ def take_observation(cameraSettings, iso=1):
         subprocess.run(cmdArgs)
 
         i -= 1
+
+def blank_process():
+    pass
 
 def initialize_observation(current_target_object):
 
@@ -76,12 +84,20 @@ def initialize_observation(current_target_object):
     cameraSettingsPrimary = [primary_camera[0], primary_camera[1], current_target_object.camera_settings['primary_cam']['num_captures'], current_target_object.camera_settings['primary_cam']['exposure_time'], time_and_date, directoryPath]
     cameraSettingsSecondary = [secondary_camera[0], secondary_camera[1], current_target_object.camera_settings['secondary_cam']['num_captures'], current_target_object.camera_settings['secondary_cam']['exposure_time'], time_and_date, directoryPath]
 
+    primary_cam_process = None
+    secondary_cam_process = None
     if current_target_object.camera_settings['primary_cam']['take_images']:
         primary_cam_process = multiprocessing.Process(target=take_observation, args=([cameraSettingsPrimary]))
+        primary_cam_process.start()
+    else:
+        primary_cam_process = multiprocessing.Process(target=blank_process)
         primary_cam_process.start()
 
     if current_target_object.camera_settings['secondary_cam']['take_images']:
         secondary_cam_process = multiprocessing.Process(target=take_observation, args=([cameraSettingsSecondary]))
+        secondary_cam_process.start()
+    else:
+        secondary_cam_process = multiprocessing.Process(target=blank_process)
         secondary_cam_process.start()
     
     return primary_cam_process, secondary_cam_process
