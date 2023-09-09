@@ -116,7 +116,7 @@ def POCSMainLoop(UNIT_LOCATION, TARGETS_FILE_PATH, settings):
         if weather_results == 'true' and isNight == True:
             print(f"{bcolors.OKGREEN}Starting observation using schedule file: {bcolors.OKCYAN}{settings['TARGET_FILE']}{bcolors.ENDC}")
             target_queue = obs_scheduler.getTargetQueue(TARGETS_FILE_PATH)
-            while target_queue != []:
+            while (target_queue != []) and (doRun == True):
                 global target
                 target = heapq.heappop(target_queue)
                 print(f"{bcolors.OKCYAN}Checking observation conditions of the current target: {target.name}.{bcolors.ENDC}")
@@ -126,7 +126,7 @@ def POCSMainLoop(UNIT_LOCATION, TARGETS_FILE_PATH, settings):
                 # tell mount controller target
                 with open(f"{PARENT_DIRECTORY}/pickle/current_target.pickle", "wb") as pickleFile:
                     pickle.dump(target, pickleFile)
-                subprocess.Popen(['python3', f'{PARENT_DIRECTORY}/mount/mount_control.py'])
+                subprocess.Popen(['python', f'{PARENT_DIRECTORY}/mount/mount_control.py'])
                 # wait for mount to say complete
                 while doRun:
                     time.sleep(5)
@@ -136,7 +136,7 @@ def POCSMainLoop(UNIT_LOCATION, TARGETS_FILE_PATH, settings):
                     # TODO: Add safety feature for weather checking & astronomical night checking
                     # TODO: Add safety feature that sends the mount the emergency park command if this loop has ran 10+ min longer than expected observation time (could also send raw serial)
 
-                    if target.cmd == 'observation complete':
+                    if (target.cmd == 'parked') and (doRun == True):
                         print(bcolors.OKGREEN + f"Observation of {target.name} complete!" + bcolors.ENDC)
                         break
 
@@ -194,7 +194,6 @@ def main():
             if (target is not None) and (target.cmd != 'observation complete'):
                 target.cmd = 'park'
                 with open(f"{PARENT_DIRECTORY}/pickle/current_target.pickle", "wb") as pickleFile:
-                        print(target.cmd)
                         pickle.dump(target, pickleFile)
                 
             systemInfo['state'] = 'off'

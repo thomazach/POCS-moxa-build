@@ -24,19 +24,23 @@ def sendTargetObjectCommand(current_target_object, cmd):
 def get_camera_paths():
     print("Finding cameras using gphoto2...")
     out = subprocess.run(["gphoto2", "--auto-detect"], stdout=subprocess.PIPE)
-    cameraPaths = out.stdout.decode('utf-8')
+    gphotoString = out.stdout.decode('utf-8')
 
-    for charsToRemove in ['Model', 'Port', '-', '\n', ' ']:
-        cameraPaths = cameraPaths.replace(charsToRemove, '')
-
-    cameraPaths = list(filter(None, cameraPaths.split("CanonEOS100D")))
+    # TODO: Make it so that it looks for the characters after 'usb:' so that camera model name 
+    # does not effect the functionality of the system
+    cameraPaths = []
+    while not usbIndex == -1:
+        usbIndex = gphotoString.find("usb")
+        cameraPaths.append(gphotoString[usbIndex:usbIndex+11])
+        gphotoString = gphotoString[usbIndex+11:]
+    cameraPaths = list(filter(None, cameraPaths))
 
     try:
         primary_camera_path, secondary_camera_path = cameraPaths
     except ValueError:
         print("Issue detecting cameras. Check power, camera settings, and the output of 'gphoto2 --auto-detect'")
     except Exception as e:
-        print(f"Error: {e}")
+        print("=ERROR=", e)
 
     return primary_camera_path, secondary_camera_path
 
