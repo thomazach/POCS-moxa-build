@@ -89,7 +89,7 @@ def getCurrentSkyCoord(port):
     
     return SkyCoord(RADecimalDegree, DECDecimalDegree, unit=u.deg)
 
-def slewToTarget(coordinates, mountSerialPort):
+def park_slewToTarget(coordinates, mountSerialPort):
 
     if not mountSerialPort.is_open:
         mountSerialPort.open()
@@ -163,6 +163,53 @@ def slewToTarget(coordinates, mountSerialPort):
                 print(f"Sent serial command ':qD#'. Stopped DEC slewing with an execution time of {time.time() - dec_start_time} seconds")
                 break
 
+def slewToTarget(coordinates, mountSerialPort=None):
+
+    if not mountSerialPort.is_open:
+         mountSerialPort.open()
+    mountSerialPort.write(b':MP0#')
+    _ = mountSerialPort.read()
+    mountSerialPort.write(b':MH#')
+    _ = mountSerialPort.read()
+
+    time.sleep(20)
+
+    RA_string = str(round(coordinates.ra.deg * 24/360 * 60 * 60 * 1000))
+    print(RA_string)
+    print(len(RA_string))
+    NumZeros = max(0, 8 - len(RA_string))
+    print(f"{NumZeros=}")
+
+    RA_milliseconds = "0" * NumZeros + RA_string
+    print(RA_milliseconds)
+
+    val = round(coordinates.dec.deg * 60 * 60 * 100)
+    NumZeros = max(0, 8 - len(RA_string))
+    if val >= 0:
+        DEC_SignedCentiArcseconds = "+" + "0" * NumZeros + str(val)
+    else:
+        DEC_SignedCentiArcseconds = "-" + "0" * NumZeros + str(val)
+
+    print(DEC_SignedCentiArcseconds)
+
+    RA_cmd = f':Sr{RA_milliseconds}#'.encode()
+    DEC_cmd = f':Sd{DEC_SignedCentiArcseconds}#'.encode()
+
+    print(f"{RA_cmd=}      {DEC_cmd=}")
+
+    if not mountSerialPort.is_open:
+         mountSerialPort.open()
+    mountSerialPort.write(RA_cmd)
+    _ = mountSerialPort.read()
+    print(_)
+    mountSerialPort.write(DEC_cmd)
+    _ = mountSerialPort.read()
+    print(_)
+    mountSerialPort.write(b':MS#')
+    _ = mountSerialPort.read()
+    print(_)
+    time.sleep(30)
+
 def park(mountSerialPort, location):
 
     parkPosition = convertAltAztoRaDec(location, "90d", "-90d")
@@ -170,7 +217,7 @@ def park(mountSerialPort, location):
     if not mountSerialPort.is_open:
         mountSerialPort.open()
 
-    slewToTarget(parkPosition, mountSerialPort)
+    park_slewToTarget(parkPosition, mountSerialPort)
 
 def main():
 
