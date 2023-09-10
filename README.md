@@ -1,5 +1,5 @@
 # Moxa-POCS
-PANOTPES Observatory Control Software for remotely operating a telescope via an ssh connection on a moxa UC-8112A-ME-T series arm processor running moxa industrial linux 1 (MIL1). This repository is designed to be a recode of [POCS](https://github.com/panoptes/POCS) for specific hardware. Main changes include a move away from object oriented programming and server/docker based communication to threading, explicit seperation of hardware for future compatibility, modular software architecture, removal of virtual environments (conda) from production builds, and thorough documentation to support both users and developers.
+PANOTPES Observatory Control Software for remotely operating a telescope via an ssh connection on a Moxa UC-8112A-ME-T series arm processor or Raspberry Pi. This repository is designed to be an update of [POCS](https://github.com/panoptes/POCS) that is more compatible with the Moxa processor. Main changes include a move away from object oriented programming and server/docker based communication to threading, explicit seperation of hardware modules for future compatibility, modular software architecture, removal of virtual environments (conda) from production builds, and thorough documentation to support both users and developers.
 
 # Key Features
 - Front End for All Settings
@@ -8,13 +8,45 @@ PANOTPES Observatory Control Software for remotely operating a telescope via an 
 - Documentation for End Users and Developers
 
 # For Users:  
-Project is incomplete as of updating this document (8/3/2023). The main [POCS](https://github.com/panoptes/POCS) repository designed for the RasPi build in Buhtan is the best version of POCS available to date. Before beginning your build, you should [explore the official panoptes website](projectpanoptes.org), [contact](https://www.projectpanoptes.org/overview/contact) the PANOTPES team, and explore the [forum](forum.projectpanoptes.org).  
+Before beginning your build, you should [explore the official panoptes website](projectpanoptes.org), [contact](https://www.projectpanoptes.org/overview/contact) the PANOTPES team, and explore the [forum](forum.projectpanoptes.org). **The 1.0 release is missing three planned features:** weather sensing, detection and handling of power loss, and guide correction during tracking.  
 ## Compatible Hardware  
 This repository is hardware specific. It is designed to work with an [iEQ30Pro](https://www.ioptron.com/product-p/3000e.htm) equitorial telescope mount, two [Cannon EOS 100Ds](https://www.canon.com.cy/for_home/product_finder/cameras/digital_slr/eos_100d/), [Arduino Uno Rev3](https://store.arduino.cc/products/arduino-uno-rev3) accompanied by a [power distribution header](https://www.infineon.com/dgdl/Infineon-24V_ProtectedSwitchShield_with_Profet+24V_for_Arduino_UsersManual_10.pdf-UserManual-v01_01-EN.pdf?fileId=5546d46255dd933d0156074933e91fe2), and either a [moxa control computer](https://www.moxa.com/en/products/industrial-computing/arm-based-computers/uc-8100a-me-t-series) or Rasberry Pi. You can find in-depth documentation for this build here. Working with other hardware will likely cause problems, and you will need to develop solutions on your own. This repository is designed such that it can be used as a framework where only portions need to be rewritten for new hardware. For more information, please refer to the section "For Developers".
 ## Install
-(WIP non-functional)  
-1. Clone this repository and run the install dependencies script.
-2. Upload power_board.ino to the arduino using the arduino-cli (possibly using automatic uploading)
+On Raspberry Pi Unbuntu Server:  # TODO!!!! 
+```
+sudo apt-get update
+sudo apt-get upgrade
+pip install astropy
+```
+On a Moxa processor running Moxa Industrial Linux 1 (MIL1):
+```
+sudo nano /etc/network/interfaces.d
+```
+Replace the two occurances of `static` with `dhcp`, save and exit the file.
+```
+sudo reboot
+# Verify that internet is working with ping:
+ping www.google.com  # Should recieve bytes, note that networks that redirect to login pages will recieve bytes but won't allow proper functioning of the internet
+sudo nano /etc/apt/sources.list
+# Make the contents of the file be:
+deb mirror://debian.moxa.com/debian/mirrors stretch main
+
+deb http://archive.debian.org/debian/ stretch main contrib non-free
+#deb-src http://deb.debian.org/debian stretch main contrib non-free
+
+deb http://archive.debian.org/debian-security/ stretch/updates main contrib non-free
+#deb-src http://security.debian.org/ stretch/updates main contrib non-free
+### Save and exit the file ###
+sudo apt-get update     # Accept all prompts
+sudo apt-get upgrade    # Accept all prompts
+```
+TODO: Installation dependenicies on Moxa device
+### Quick Start  
+After a succesful installation:
+1. Start the `panoptes-CLI` shell with: `python3 ~/POCS-moxa-build/panoptes-CLI.py`
+2. Use the `settings` command to set the location of your unit.
+3. Use the `schedule` command to create a schedule file and select it as the active schedule file.
+4. Use the `start` command to put the unit into an automated observation state  
 ## Operation
 The unit is controlled through a custom shell that can be launched from a terminal with `python3 ~/POCS-moxa-build/panoptes-CLI.py`. Below is a table of available shell commands. Please note that the shell's built in help documentation includes shortcuts not listed here, and may be in a more accessible format.
 |Command|Arguments|Description|
@@ -33,7 +65,7 @@ The unit is controlled through a custom shell that can be launched from a termin
 |`arduino weather`|`on`, `off`|Turn the power to the weather sensor on or off. Wiring based off of [this](https://www.youtube.com/watch?v=Uq_ytlCmLIw) video.|
 |`arduino unassigned`|`on`, `off`|Turn the power on or off for the unused pin on the arduino board. Wiring based off of [this](https://www.youtube.com/watch?v=Uq_ytlCmLIw) video.|
 ## Advanced Operation  
-The panoptes-CLI documented in the "Operation" section is a simple shell that calls executable python files in the `user_scripts` directory. Using the CLI is **not** required to control a panoptes unit running moxa-pocs. For example, running `~/user_scripts/schedule.py --select test_fields.yaml` on the command line has the same effect as running `schedule --select test_fields.yaml` in the panoptes-CLI. This is easily extended to third party and end user automation. By calling the executables in `user_scripts` from an another file, you can achieve functionality that isn't provided directly. For example, consider this standalone python script that will observe normally, and then at a specific time automatically switch to observing a different schedule file:
+The panoptes-CLI documented in the "Operation" section is a simple shell that calls executable python files in the `user_scripts` directory. Using the CLI is **not** required to control a panoptes unit running moxa-pocs. For example, running `~/user_scripts/schedule.py --select test_fields.yaml` on the command line has the same effect as running `schedule --select test_fields.yaml` in the panoptes-CLI. This is easily extended to third party and end user automation. By calling the executables in `user_scripts` from another file, you can achieve functionality that isn't provided directly. For example, consider this standalone python script that will observe normally, and then at a specific time automatically switch to observing a different schedule file:
 ```python
 import os
 import threading
@@ -69,21 +101,21 @@ while True:
 **Automated scripts like this will not work well with commands that require user input.** If an advanced user creates a script that is truly helpful, it can be added to the `user_scripts` folder and integrated with the panoptes-CLI to give users even more CLI commands and tools.  
 # For Developers:  
 ## Commitment to End Users, Project PANOPTES, & Open Source
-As a repository contributing to citizen science, we have special commitments that need to be upheld. This is an open source repository, and pull requests that add barriers to development, are obfuscated, implement mandatory pay walls, or require the user to pay for third party software/dependencies will not be merged. We also have end users with vastly different computer skills. As a developer, it is your responsibility to thoroughly document the features you create with guides and examples. Merges to main (production) will not be accepted without reasonable documentation. Features should be developed based on community and PANOPTES team feedback, either from the weekly meetings or the [PANOPTES forum](forum.projectpanoptes.org).  
+As a repository contributing to citizen science, we have special commitments that need to be upheld. This is an open source repository, and pull requests that add barriers to development, are obfuscated, implement pay walls, or require the user to pay for third party software/dependencies will not be merged. We also have end users with vastly different computer skills. As a developer, it is your responsibility to thoroughly document the features you create with guides and examples. Merges to main (production) will not be accepted without reasonable documentation. Features should be developed based on community and PANOPTES team feedback, either from the weekly meetings or the [PANOPTES forum](forum.projectpanoptes.org).  
 TODO:  
 Create convention for sharing documentation 
 
 
 ## Pull Requests
-(WIP, currently a private repo in early developmnet)
-- No pickle files for security reasons
+All pull requests should be made on the develop branch. If the pull request is approved by a maintainer and is merged to develop, the develop branch must be tested on hardware successfully for a duration of three days before it can be merged to main. In the future, the three day test will need to include successful detection and response to both weather conditions and power conditions. Additionally, **do not include your system's pickle or yaml files** in your pull requests. You may include third party wrappers as explained in the Advanced Operation section, but they must be placed within the `user_scripts` directory and be refactored to be compatible with the `panoptes-CLI`.
 
 ## Modular Software Architecture
 The hardware available to builders will change over time, and to accomodate future builds each piece of hardware has its own module and subdirectory. The goal is to enable builders with different hardware to be able to recode only the module(s) they need. Because of this, each hardware module cannot import functions or classes from other hardware modules. However, they can import functions and classes from modules that won't **require** an update to continue functioning. We refer to the modules that won't **require** updates as static modules. A breakdown of static vs hardware modules can be found below.
 
 Static modules:
-- observational_scheduler  
 - core
+- observational_scheduler  
+- logger
 
 
 Hardware modules:
@@ -102,7 +134,7 @@ Python's pickle feature is used to communicate between modules. The convention o
 |`arduino_cmd.pickle`| Used for communicating with the arduino module. Contains an object with a human-readable arduino command, execution state, and response field.|  
 |`system_info.pickle` | Stores the desired on/off state of the system along with the actual on/off state. Used for graceful exiting during observation and in the future will be used to hold ASCOM telescope states and relevant non-constant system wide information.|
 
-A visual representation of autonomous communication flow:
+A visual representation of information flow and module calls:
 
 ### Overview of Modules
 The following overview was made during development, and is subject to change. Is accurate as of 8/31/2023.
@@ -110,6 +142,8 @@ The following overview was made during development, and is subject to change. Is
 This module runs perpetually during autonomous observation. It is responsible for checking safety conditions, observation conditions, deciding what to observe (based on user preference and moon position), and feeding the rest of the system with targets to observe via `current_target.pickle`. 
 #### `observational_scheduler` 
 This module is imported by core. It contains a target class that has important information about a single star or field. This includes RA/DEC coordinates, image settings, and a command that will be recognized by other modules. It also contains the `getTargetQueue` function, which creates a heap of target instances ordered from highest priority to lowest priority based off of a specified `.yaml` file. This function is called in core to create a list of targets that the system will attempt to observe.
+#### `logger`
+This is the system wide logging object. TODO: UPDATE WITH MORE INFO
 #### `mount` 
 This mount module is designed for the iEQ30Pro. This mount uses the serial [iOptron RS-232 Command Language V2.5](http://www.ioptron.com/v/ASCOM/RS-232_Command_Language2014_V2.5.pdf). The mount module uses this command langauge along with pyserial to control the mount. After core writes a target instance to `current_target.pickle`, it executes the mount module which will then establish communication with the mount, start an ongoing loop and read the pickle file. If the target instance's `cmd` attribute is `'slew to target'` the mount will unpark, slew to the specified coordinates in the pickle file and start tracking. It will then change the pickle files `cmd` attribute to `'take images'` and call the `cameras` module. The mount loop will end and park the mount after the cameras have finished taking images.
 #### `cameras` 
