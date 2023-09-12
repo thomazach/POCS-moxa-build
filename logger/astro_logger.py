@@ -3,6 +3,8 @@ import colorlog
 import inspect
 import os
 
+from yaml import safe_load
+
 class astroLogger(logging.Logger):
 
     """
@@ -17,8 +19,25 @@ class astroLogger(logging.Logger):
     """
     #TODO: Add a way for the user to control colors
 
-    def __init__(self, log_level=logging.INFO, format='%(log_color)s%(asctime)s:%(name)s:%(levelname)-8s    %(message)s', date_format='%Y-%m-%d %H:%M:%S', enable_color = False):
+    def __init__(self, log_level=None, format='%(log_color)s%(asctime)s:%(name)s:%(levelname)-8s    %(message)s', date_format='%Y-%m-%d %H:%M:%S', enable_color = False):
         
+        if log_level == None:
+            parentDir = os.path.realpath(__file__).replace(r'\logger\astro_logger.py', '')
+            with open(parentDir + r'\conf_files\settings.yaml', "r") as f:
+                settings = safe_load(f)
+            
+            match settings['DEBUG_MESSAGE_LEVEL'].lower():
+                case 'debug':
+                    log_level = logging.DEBUG
+                case 'info':
+                    log_level = logging.INFO
+                case 'warning':
+                    log_level = logging.WARNING
+                case 'error':
+                    log_level = logging.ERROR
+                case 'critical':
+                    log_level = logging.CRITICAL
+
         caller_frame = inspect.stack()[1]
         calling_module_path = inspect.getmodule(caller_frame[0]).__file__
         calling_module_name = os.path.basename(calling_module_path).replace('.py', '')
