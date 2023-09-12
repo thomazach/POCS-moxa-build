@@ -12,7 +12,7 @@ Before beginning your build, you should [explore the official panoptes website](
 ## Compatible Hardware  
 This repository is hardware specific. It is designed to work with an [iEQ30Pro](https://www.ioptron.com/product-p/3000e.htm) equitorial telescope mount, two [Cannon EOS 100Ds](https://www.canon.com.cy/for_home/product_finder/cameras/digital_slr/eos_100d/), [Arduino Uno Rev3](https://store.arduino.cc/products/arduino-uno-rev3) accompanied by a [power distribution header](https://www.infineon.com/dgdl/Infineon-24V_ProtectedSwitchShield_with_Profet+24V_for_Arduino_UsersManual_10.pdf-UserManual-v01_01-EN.pdf?fileId=5546d46255dd933d0156074933e91fe2), and either a [moxa control computer](https://www.moxa.com/en/products/industrial-computing/arm-based-computers/uc-8100a-me-t-series) or Raspberry Pi. You can find in-depth documentation for this build here. Working with other hardware will likely cause problems, and you will need to develop solutions on your own. This repository is designed such that it can be used as a framework where only portions need to be rewritten for new hardware. For more information, please refer to the section "For Developers".
 ## Install
-On Raspberry Pi Unbuntu Server:  # TODO!!!! 
+On Raspberry Pi Unbuntu Server:
 ```
 sudo apt-get update
 sudo apt-get upgrade
@@ -43,6 +43,9 @@ deb http://archive.debian.org/debian-security/ stretch/updates main contrib non-
 ### Save and exit the file ###
 sudo apt-get update     # Accept all prompts
 sudo apt-get upgrade    # Accept all prompts
+sudo apt install git
+
+git clone https://github.com/thomazach/POCS-moxa-build.git
 ```
 TODO: Installation dependenicies on Moxa device
 ### Quick Start  
@@ -139,6 +142,7 @@ Python's pickle feature is used to communicate between modules. The convention o
 |`system_info.pickle` | Stores the desired on/off state of the system along with the actual on/off state. Used for graceful exiting during observation and in the future will be used to hold ASCOM telescope states and relevant non-constant system wide information.|
 
 A visual representation of information flow and module calls:
+![Moxa-POCS Flowchart](https://github.com/thomazach/POCS-moxa-build/assets/86134403/ba5f3c14-efb5-46c4-8457-624bf11e5a43)
 
 ### Overview of Modules
 The following overview was made during development, and is subject to change. Is accurate as of 9/10/2023.
