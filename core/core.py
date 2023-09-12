@@ -1,12 +1,14 @@
 import os
 import sys
+import subprocess
 import heapq
 import pickle
 import math
 import time
+import threading
 
 from yaml import safe_load
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from astropy import units as u
 from astropy.time import Time
@@ -94,34 +96,15 @@ def checkTargetAvailability(position, unitLocation):
             return False
     return True
 
-def main():
-    print(bcolors.PURPLE + "\nSystem is now in automated observation state." + bcolors.ENDC)
-    # put logger statement
-    with open(f"{PARENT_DIRECTORY}/conf_files/settings.yaml", 'r') as f:
-        settings = safe_load(f)
+def POCSMainLoop(UNIT_LOCATION, TARGETS_FILE_PATH, settings):
+    # The bread and butter of core. Responsible for sending commands to mount and
+    # deciding what to observe. Its a function so that it can be threaded. This allows
+    # the panoptes-CLI stop command to stop the observation process quickly without having
+    # to wait for the condition check loop which is 5 minutes.
+    
+    global doRun
 
-    TARGETS_FILE_PATH = f"{PARENT_DIRECTORY}/conf_files/targets/{settings['TARGET_FILE']}"
-    LAT_CONFIG = settings['LATITUDE']
-    LON_CONFIG = settings['LONGITUDE']
-    ELEVATION_CONFIG = settings['ELEVATION']
-    UNIT_LOCATION = EarthLocation(lat=LAT_CONFIG, lon=LON_CONFIG, height=ELEVATION_CONFIG * u.m)
-
-    while True:
-
-        # Graceful on off switch
-        with open(f"{PARENT_DIRECTORY}/pickle/system_info.pickle", "rb") as f:
-            systemInfo = pickle.load(f)
-        
-        if systemInfo['desired_state'] == 'on' and systemInfo['state'] == 'off':
-            systemInfo['state'] = 'on'
-            with open(f"{PARENT_DIRECTORY}/pickle/system_info.pickle", "wb") as f:
-                pickle.dump(systemInfo, f)
-
-        if systemInfo['desired_state'] == 'off' and systemInfo['state'] == 'on':
-            systemInfo['state'] = 'off'
-            # TODO: send mount and cameras appropriate pickle cmd to exit with grace
-            # Wait for response
-            break
+    while doRun:
 
         _writeToFile(WEATHER_RESULTS_TXT, 'go')
         _writeToFile(WEATHER_RESULTS_TXT, 'true') # Temporarily need to bypass weather module until panoptes team figures out solution for weather sensor
@@ -133,7 +116,8 @@ def main():
         if weather_results == 'true' and isNight == True:
             print(f"{bcolors.OKGREEN}Starting observation using schedule file: {bcolors.OKCYAN}{settings['TARGET_FILE']}{bcolors.ENDC}")
             target_queue = obs_scheduler.getTargetQueue(TARGETS_FILE_PATH)
-            while target_queue != []:
+            while (target_queue != []) and (doRun == True):
+                global target
                 target = heapq.heappop(target_queue)
                 print(f"{bcolors.OKCYAN}Checking observation conditions of the current target: {target.name}.{bcolors.ENDC}")
                 if not checkTargetAvailability(target.position['ra'] + target.position['dec'], UNIT_LOCATION):
@@ -142,17 +126,18 @@ def main():
                 # tell mount controller target
                 with open(f"{PARENT_DIRECTORY}/pickle/current_target.pickle", "wb") as pickleFile:
                     pickle.dump(target, pickleFile)
-                os.system(f'python3 {PARENT_DIRECTORY}/mount/mount_control.py')
+                subprocess.Popen(['python', f'{PARENT_DIRECTORY}/mount/mount_control.py'])
                 # wait for mount to say complete
-                while True:
-                    time.sleep(30)
+                while doRun:
+                    time.sleep(5)
                     with open(f"{PARENT_DIRECTORY}/pickle/current_target.pickle", "rb") as f:
                         target = pickle.load(f)
                     
                     # TODO: Add safety feature for weather checking & astronomical night checking
                     # TODO: Add safety feature that sends the mount the emergency park command if this loop has ran 10+ min longer than expected observation time (could also send raw serial)
 
-                    if target.cmd == 'observation complete':
+                    if (target.cmd == 'parked') and (doRun == True):
+                        print(bcolors.OKGREEN + f"Observation of {target.name} complete!" + bcolors.ENDC)
                         break
 
                 # get data from camera
@@ -168,7 +153,53 @@ def main():
             # Things aren't safe so the mount needs to be told to cry
             # break
         
-        time.sleep(300)
+        nextConditionCheck = datetime.now() + timedelta(minutes=5)
+        while doRun:
+            if nextConditionCheck <= datetime.now():
+                break
+            time.sleep(1)
+            
+
+doRun = True
+target = None
+def main():
+    print(bcolors.PURPLE + "\nSystem is now in automated observation state." + bcolors.ENDC)
+    # put logger statement
+    with open(f"{PARENT_DIRECTORY}/conf_files/settings.yaml", 'r') as f:
+        settings = safe_load(f)
+
+    TARGETS_FILE_PATH = f"{PARENT_DIRECTORY}/conf_files/targets/{settings['TARGET_FILE']}"
+    LAT_CONFIG = settings['LATITUDE']
+    LON_CONFIG = settings['LONGITUDE']
+    ELEVATION_CONFIG = settings['ELEVATION']
+    UNIT_LOCATION = EarthLocation(lat=LAT_CONFIG, lon=LON_CONFIG, height=ELEVATION_CONFIG * u.m)
+
+    while True:
+        # Graceful on off switch
+        with open(f"{PARENT_DIRECTORY}/pickle/system_info.pickle", "rb") as f:
+            systemInfo = pickle.load(f)
+        
+        if systemInfo['desired_state'] == 'on' and systemInfo['state'] == 'off':
+            loop = threading.Thread(target=POCSMainLoop, args=[UNIT_LOCATION, TARGETS_FILE_PATH, settings]).start()
+            systemInfo['state'] = 'on'
+            with open(f"{PARENT_DIRECTORY}/pickle/system_info.pickle", "wb") as f:
+                pickle.dump(systemInfo, f)
+
+        if systemInfo['desired_state'] == 'off' and systemInfo['state'] == 'on':
+            global doRun
+            global target
+
+            doRun = False
+
+            if (target is not None) and (target.cmd != 'observation complete'):
+                target.cmd = 'park'
+                with open(f"{PARENT_DIRECTORY}/pickle/current_target.pickle", "wb") as pickleFile:
+                        pickle.dump(target, pickleFile)
+                
+            systemInfo['state'] = 'off'
+            break
+
+        time.sleep(5)
 
     with open(f"{PARENT_DIRECTORY}/pickle/system_info.pickle", "wb") as f:
                 pickle.dump(systemInfo, f)

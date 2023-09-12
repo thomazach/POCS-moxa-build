@@ -6,11 +6,11 @@ def main(args):
 
     PARENT_DIRECTORY = os.path.dirname(__file__).replace('/user_scripts', '')
 
-    # TODO: Code below resets the fancy on off to default, is useful for debugging but need to decide to keep or exclude from v1.0
-    # with open(f"{PARENT_DIRECTORY}/pickle/system_info.pickle", "wb") as f:
-    #     systemInfo = {'state': 'off', 'desired_state': 'off'}
-    #     systemInfo = pickle.dump(systemInfo, f)
-    # time.sleep(0.5)
+    if args.force:
+        with open(f"{PARENT_DIRECTORY}/pickle/system_info.pickle", "wb") as f:
+            systemInfo = {'state': 'off', 'desired_state': 'off'}
+            systemInfo = pickle.dump(systemInfo, f)
+        time.sleep(0.5)
 
     with open(f"{PARENT_DIRECTORY}/pickle/system_info.pickle", "rb") as f:
         systemInfo = pickle.load(f)
@@ -25,7 +25,7 @@ def main(args):
         
         time.sleep(0.5)
 
-        os.system(f'python3 {PARENT_DIRECTORY}/core/core.py')
+        os.system(f'python {PARENT_DIRECTORY}/core/core.py')
     elif systemInfo['state'] == 'on':
         print("System is already running!")
     else:
@@ -44,6 +44,9 @@ Put the unit into an automated observation state using the current system settin
 and currently selected schedule file. Changing the settings, editing the schedule
 file, or selecting a different scheduling file will not take effect until the
 system is taken out of automated obsevation with the 'stop' command.''')
+    parser.add_argument('--force', '-f', action='store_true', help='''\
+Force the internal system communication to think the unit is in the off state before running start as usual.
+This is useful for reseting the system after encountering an error when running the stop or start panoptes-CLI commands.''')
     args = parser.parse_args()
     main(args)
                                      
