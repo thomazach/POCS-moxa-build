@@ -139,7 +139,7 @@ def POCSMainLoop(UNIT_LOCATION, TARGETS_FILE_PATH, settings):
                     pickle.dump(target, pickleFile)
                 logger.debug(f"Wrote to current_target.pickle, with target: {target}")
 
-                subprocess.Popen(['python', f'{PARENT_DIRECTORY}/mount/mount_control.py'])
+                subprocess.Popen(['python3', f'{PARENT_DIRECTORY}/mount/mount_control.py'])
                 logger.info("Called the mount module.")
 
                 # wait for mount to say complete

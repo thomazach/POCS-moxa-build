@@ -26,7 +26,7 @@ def main(args):
         time.sleep(0.5)
 
         logger.debug("Starting core module.")
-        os.system(f'python {PARENT_DIRECTORY}/core/core.py')
+        os.system(f'python3 {PARENT_DIRECTORY}/core/core.py')
     elif systemInfo['state'] == 'on':
         print("System is already running!")
     else:

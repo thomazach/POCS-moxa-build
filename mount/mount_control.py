@@ -282,7 +282,7 @@ def main():
                 logger.debug(f"Result of unpark command: {_}")
                 slewToTarget(SkyCoord(current_target.position['ra'], current_target.position['dec'], unit=(u.hourangle, u.deg)), mount_port)
                 sendTargetObjectCommand(current_target, 'take images')
-                os.system(f'python {parentPath}/cameras/camera_control.py')
+                os.system(f'python3 {parentPath}/cameras/camera_control.py')
                 logger.info("Started the camera module.")
 
             case 'park':
