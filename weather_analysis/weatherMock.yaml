@@ -1,0 +1,17 @@
+---
+- temperature: 20
+  moisture: 1
+  windSpeed: 105
+  priority: 100
+- temperature: 23
+  moisture: 11
+  windSpeed: 30
+  priority: 1
+- temperature: 102
+  moisture: 27
+  windSpeed: 70
+  priority: 300
+- temperature: 40
+  moisture: 15
+  windSpeed: 156
+  priority: 275

@@ -1,0 +1,42 @@
+Andromeda:
+  cmd: slew to target
+  dec: +41 16 09
+  note: None
+  primary_cam:
+    exposure_time: null
+    num_captures: null
+    take_images: false
+  priority: 100
+  ra: 00 42 44
+  secondary_cam:
+    exposure_time: null
+    num_captures: null
+    take_images: false
+Polaris:
+  cmd: slew to target
+  dec: +89 21 28
+  note: bad note
+  primary_cam:
+    exposure_time: 120
+    num_captures: 10
+    take_images: true
+  priority: 10
+  ra: 03 00 54
+  secondary_cam:
+    exposure_time: null
+    num_captures: null
+    take_images: false
+Sirius:
+  cmd: slew to target
+  dec: '23'
+  note: None
+  primary_cam:
+    exposure_time: 90
+    num_captures: 30
+    take_images: true
+  priority: 150
+  ra: '06'
+  secondary_cam:
+    exposure_time: null
+    num_captures: null
+    take_images: false
