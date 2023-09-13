@@ -68,8 +68,6 @@ def main(args):
         return schedule
 
     def _betterInput(prompt, Type = str, default = None):
-        #TODO: Implement the mountCommand class so that I can also have it 
-        #      handled here
 
         result = None
         while result == None:
@@ -103,7 +101,7 @@ def main(args):
         priority = _betterInput('Input the priority of the observation as a positive whole number: ', Type=int, default=0)
         ra = _betterInput('Input the ra in hours minutes seconds (00 42 44): ', default='00 42 44')
         dec = _betterInput('Input the dec in degrees minutes seconds (-41 16 09): ', default='+41 16 09')
-        cmd = _betterInput('Input the command [leave blank for slew]: ', default='slew to target')
+        cmd = 'slew to target'
         print('Primary Camera Settings: \n')
         primaryCam = _makeCameraArr()
         print('Secondary Camera Settings: \n')
