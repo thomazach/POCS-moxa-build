@@ -1,0 +1,14 @@
+Developer:
+  cmd: slew to target
+  dec: 00d00m00s
+  primary_cam:
+    exposure_time: 10
+    num_captures: 1
+    take_images: true
+  priority: 1
+  ra: 00 00 00
+  secondary_cam:
+    exposure_time: 24
+    num_captures: 1
+    take_images: true
+  user_note: shell test
