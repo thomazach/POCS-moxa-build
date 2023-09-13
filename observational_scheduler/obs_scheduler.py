@@ -30,7 +30,7 @@ class target:
         return self.priority >= other.priority
     
     def __str__(self):
-        return f'---\npriority={0 - self.priority}\nname={self.name}\nposition={self.position}\ncamera_settings={self.camera_settings}\nobservation_notes={self.observation_notes}\n---'
+        return f'---\npriority={0 - self.priority}\nname={self.name}\nposition={self.position}\ncamera_settings={self.camera_settings}\nobservation_notes={self.observation_notes}\ncmd={self.cmd}\n---'
 
 def getTargetQueue(PATH):
     pQueue = []
