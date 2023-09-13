@@ -23,7 +23,7 @@ wget https://raw.githubusercontent.com/gonzalo/gphoto2-updater/master/gphoto2-up
 
 git clone https://github.com/thomazach/POCS-moxa-build.git
 ```
-On a Moxa processor running Moxa Industrial Linux 1 (MIL1):
+On a Moxa processor running Moxa Industrial Linux 1 (MIL1): (This section is still a work in progress.)
 ```
 sudo nano /etc/network/interfaces.d
 ```
@@ -48,7 +48,7 @@ sudo apt install git
 
 git clone https://github.com/thomazach/POCS-moxa-build.git
 ```
-TODO: Installation dependenicies on Moxa device
+Work in progress: Installing dependenicies on Moxa device  
 ### Quick Start  
 After a succesful installation:
 1. Start the `panoptes-CLI` shell with: `python3 ~/POCS-moxa-build/panoptes-CLI.py`
