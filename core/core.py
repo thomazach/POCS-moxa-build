@@ -14,7 +14,7 @@ from astropy import units as u
 from astropy.time import Time
 from astropy.coordinates import EarthLocation, SkyCoord, AltAz, Angle, get_body
 
-# TODO: Add colors and see if its possible to force it to print below the command line
+# TODO: See if its possible to force it to print below the command line
 
 PARENT_DIRECTORY = os.path.dirname(__file__).replace('/core', '')
 sys.path.append(PARENT_DIRECTORY)

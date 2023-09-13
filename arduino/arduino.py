@@ -135,7 +135,6 @@ def main():
             if commandDict['execute'] == True:
                 logger.info(f"Attempting to execute arduino command: {commandDict['cmd']}")
                 arduinoReadyCommand = serialize_commands(commandDict['cmd'])
-                # TODO: When logging is added log the command sent to the arduino
                 arduinoPort.write(arduinoReadyCommand)
                 commandDict['response'] = listen(arduinoPort)
 
