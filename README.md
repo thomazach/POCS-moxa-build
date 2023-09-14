@@ -18,7 +18,7 @@ sudo apt-get update
 sudo apt-get upgrade
 sudo apt install python3-pip
 pip install astropy
-pip install colormap
+pip install colorlog
 wget https://raw.githubusercontent.com/gonzalo/gphoto2-updater/master/gphoto2-updater.sh && wget https://raw.githubusercontent.com/gonzalo/gphoto2-updater/master/.env && chmod +x gphoto2-updater.sh && sudo ./gphoto2-updater.sh
 
 git clone https://github.com/thomazach/POCS-moxa-build.git
