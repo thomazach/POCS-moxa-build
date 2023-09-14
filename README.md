@@ -8,20 +8,22 @@ PANOTPES Observatory Control Software remotely operates a telescope via an SSH c
 - Documentation for End Users and Developers
 
 # For Users:  
-Before beginning your build, you should [explore the official panoptes website](projectpanoptes.org), [contact](https://www.projectpanoptes.org/overview/contact) the PANOTPES team, and explore the [forum](forum.projectpanoptes.org). **The 1.0 release is missing three planned features:** weather sensing, detection and handling of power loss, and guide correction during tracking.  
+Before beginning your build, you should [explore the official panoptes website](projectpanoptes.org), [contact](https://www.projectpanoptes.org/overview/contact) the PANOTPES team, and explore the [forum](forum.projectpanoptes.org). **The v1.0.0 release is missing three planned features:** weather sensing, detection and handling of power loss, and tracking correction.  
 ## Compatible Hardware  
 This repository is hardware specific. It is designed to work with an [iEQ30Pro](https://www.ioptron.com/product-p/3000e.htm) equitorial telescope mount, two [Cannon EOS 100Ds](https://www.canon.com.cy/for_home/product_finder/cameras/digital_slr/eos_100d/), [Arduino Uno Rev3](https://store.arduino.cc/products/arduino-uno-rev3) accompanied by a [power distribution header](https://www.infineon.com/dgdl/Infineon-24V_ProtectedSwitchShield_with_Profet+24V_for_Arduino_UsersManual_10.pdf-UserManual-v01_01-EN.pdf?fileId=5546d46255dd933d0156074933e91fe2), and either a [moxa control computer](https://www.moxa.com/en/products/industrial-computing/arm-based-computers/uc-8100a-me-t-series) or Raspberry Pi. You can find in-depth documentation for this build here. Working with other hardware will likely cause problems, and you will need to develop solutions on your own. This repository is designed such that it can be used as a framework where only portions need to be rewritten for new hardware. For more information, please refer to the section "For Developers".
 ## Install
 On Raspberry Pi Unbuntu Server:
 ```
-sudo apt-get update
-sudo apt-get upgrade
-sudo apt install python3-pip
-pip install astropy
-pip install colorlog
-wget https://raw.githubusercontent.com/gonzalo/gphoto2-updater/master/gphoto2-updater.sh && wget https://raw.githubusercontent.com/gonzalo/gphoto2-updater/master/.env && chmod +x gphoto2-updater.sh && sudo ./gphoto2-updater.sh
+$ sudo apt-get update
+$ sudo apt-get upgrade
+$ sudo apt install python3-pip
+$ sudo mv /usr/lib/python3.11/EXTERNALLY-MANAGED /usr/lib/python3.11/EXTERNALLY-MANAGED.old
+$ sudo pip install astropy   # sudo required otherwise it will try to make a user installation
+$ sudo pip install colorlog  # sudo required otherwise it will try to make a user installation
+### Choose 2 (stable version) after running the command below ###
+$ wget https://raw.githubusercontent.com/gonzalo/gphoto2-updater/master/gphoto2-updater.sh && wget https://raw.githubusercontent.com/gonzalo/gphoto2-updater/master/.env && chmod +x gphoto2-updater.sh && sudo ./gphoto2-updater.sh
 
-git clone https://github.com/thomazach/POCS-moxa-build.git
+$ git clone https://github.com/thomazach/POCS-moxa-build.git
 ```
 On a Moxa processor running Moxa Industrial Linux 1 (MIL1): (This section is still a work in progress.)
 ```
@@ -153,12 +155,12 @@ This module is the system wide logging object, called `astroLogger`. It supports
 #### `mount` 
 This mount module is designed for the iEQ30Pro. This mount uses the serial [iOptron RS-232 Command Language V2.5](http://www.ioptron.com/v/ASCOM/RS-232_Command_Language2014_V2.5.pdf). The mount module uses this command language along with pyserial to control the mount. After core writes a target instance to `current_target.pickle`, it executes the mount module which will then establish communication with the mount, start an ongoing loop and read the pickle file. If the target instance's `cmd` attribute is `'slew to target'` the mount will unpark, slew to the specified coordinates in the pickle file and start tracking. It will then change the pickle files `cmd` attribute to `'take images'` and call the `cameras` module. The mount loop will end and park the mount after the cameras have finished taking images.
 #### `cameras` 
-The camera module uses the [gphoto2](http://gphoto.org/) command line interface to control the cameras. After it is called by the mount module, it reads the pickle file to make sure that the command is `'take_images'`, at which point it automatically detects the cameras, and takes an "observation," which is several long exposure images on both cameras using multiprocessing. The specifics of the observation are determined by the `camera_settings` attribute in the pickle file. The images are stored to the `images` directory with timestamped directories. Once both multiprocesses have finished, the module sets the `cmd` attribute of the pickle file to `'observation_complete'` and exits. This command signals the mount module to park and core to send the next target to observe.
+The camera module uses the [gphoto2](http://gphoto.org/) command line interface to control the cameras. After it is called by the mount module, it reads the pickle file to make sure that the command is `'take images'`, at which point it automatically detects the cameras, and takes an "observation," which is several long exposure images on both cameras using multiprocessing. The specifics of the observation are determined by the `camera_settings` attribute in the pickle file. The images are stored to the `images` directory with timestamped directories. Once both multiprocesses have finished, the module sets the `cmd` attribute of the pickle file to `'observation complete'` and exits. This command signals the mount module to park, and once parked the mount module issues a command that tells core to send the next target to observe.
 #### `arduino`
-The arduino module uses pyserial to start direct serial communication. The arduino module is run in a permanant loop, since connecting to an arduino with pyserial will restart it, causing the setup() function to run which can cause unwanted behavior. On the python side, the arduino repeatedly checks the `arduino_cmd.pickle` file for new commands from other modules or users in the custom shell. It then processes the entered command into a serial command code (integer), puts appropriate start and end characters, and sends the command to the arduino. On the arduino side, the arduino recieves this command, executes it, and returns a success code or the requested data with start and end characters. The response is then written to the pickle file. The pickle file contains a dictionary with specific keys. This is an example of a valid dictionary to read the currents on the arduinos output pins:  
+The arduino module uses pyserial for direct serial communication. The arduino module is run in a permanant loop, since connecting to an arduino with pyserial will restart it, causing the setup() function to run which can cause unwanted behavior. On the python side, the arduino module repeatedly checks the `arduino_cmd.pickle` file for new commands from other modules or users in the custom shell. It then processes the entered command into a serial command code (integer), puts appropriate start and end characters, and sends the command to the arduino. On the arduino side, the arduino recieves this command, executes it, and returns a success code or the requested data with start and end characters. The response is then written to the pickle file. The pickle file contains a dictionary with specific keys. This is an example of a valid dictionary to read the currents on the arduinos output pins:  
 `{'cmd': 'currents', 'execute': True, 'response': 'waiting for response'}`
 #### `weather_analysis`
 The weather station is currently being redesigned, and as such this module is a work-in-progress. The main concept is that the module will analyze the results of a connected weather sensor and communicate a True or False statement about weather safety to core. This statement is currently forced to be true in the `core` module for the time being.
 
 ## User Input and Configuration Files
-We use yaml files to store configuration information. We don't allow users to edit these directly. It is best practice for this project to keep `.yaml` and `.yml` files write locked to the user in production, and allow the user to edit them using a dedicated front end. Developers are responsible for providing documentation for this frontend for users of all skill levels (assuming basic computer knowledge).
+We use yaml files to store configuration information. We don't allow users to edit these directly. It is best practice for this project to keep `.yaml` hidden from the user in production, and allow the user to edit them using a dedicated front end. Developers are responsible for providing documentation for users of all skill levels (assuming basic computer knowledge).
