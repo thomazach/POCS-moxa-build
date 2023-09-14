@@ -110,9 +110,6 @@ while True:
 # For Developers:  
 ## Commitment to End Users, Project PANOPTES, & Open Source
 As a repository contributing to citizen science, we have special commitments that need to be upheld. This is an open source repository, and pull requests that add barriers to development, are obfuscated, implement pay walls, or require the user to pay for third party software/dependencies will not be merged. We also have end users with vastly different computer skills. As a developer, it is your responsibility to thoroughly document the features you create with guides and examples. Merges to main (production) will not be accepted without reasonable documentation. Features should be developed based on community and PANOPTES team feedback, either from the weekly meetings or the [PANOPTES forum](forum.projectpanoptes.org).  
-TODO:  
-Create convention for sharing documentation 
-
 
 ## Pull Requests
 All pull requests should be made on the develop branch. If the pull request is approved by a maintainer and is merged to develop, the develop branch must be tested on hardware successfully for a duration of three days before it can be merged to main. In the future, the three day test will need to include successful detection and response to both weather conditions and power conditions. Additionally, **do not include your system's pickle or yaml files** in your pull requests. You may include third party wrappers as explained in the Advanced Operation section, but they must be placed within the `user_scripts` directory and be refactored to be compatible with the `panoptes-CLI`.
@@ -152,7 +149,7 @@ This module runs continually during autonomous observation. It is responsible fo
 #### `observational_scheduler` 
 This module is imported by core. It contains a target class that has important information about a single star or field. This includes RA/DEC coordinates, image settings, and a command that will be recognized by other modules. It also contains the `getTargetQueue` function, which creates a heap of target instances ordered from highest priority to lowest priority based off of a specified `.yaml` file. This function is called in core to create a list of targets that the system will attempt to observe.
 #### `logger`
-This is the system wide logging object. TODO: UPDATE WITH MORE INFO
+This module is the system wide logging object, called `astroLogger`. It supports colored logs and inherits python's `logging.Logger` object, and is used in the same way. When initializing the logger, please use `logger = astroLogger(color_enabled=True)` for consistency. Log files are located in `/logger/logs/`, and each python file is given its own log file.
 #### `mount` 
 This mount module is designed for the iEQ30Pro. This mount uses the serial [iOptron RS-232 Command Language V2.5](http://www.ioptron.com/v/ASCOM/RS-232_Command_Language2014_V2.5.pdf). The mount module uses this command language along with pyserial to control the mount. After core writes a target instance to `current_target.pickle`, it executes the mount module which will then establish communication with the mount, start an ongoing loop and read the pickle file. If the target instance's `cmd` attribute is `'slew to target'` the mount will unpark, slew to the specified coordinates in the pickle file and start tracking. It will then change the pickle files `cmd` attribute to `'take images'` and call the `cameras` module. The mount loop will end and park the mount after the cameras have finished taking images.
 #### `cameras` 
