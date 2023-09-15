@@ -142,7 +142,8 @@ Python's pickle feature is used to communicate between modules. The convention o
 |`system_info.pickle` | Stores the desired on/off state of the system along with the actual on/off state. Used for graceful exiting during observation and in the future will be used to hold ASCOM telescope states and relevant non-constant system wide information.|
 
 A visual representation of information flow and module calls:
-![Moxa-POCS Flowchart](https://github.com/thomazach/POCS-moxa-build/assets/86134403/ba5f3c14-efb5-46c4-8457-624bf11e5a43)
+![Moxa-POCS Flowchart](https://github.com/thomazach/POCS-moxa-build/assets/86134403/3d84d89c-ac93-4dc5-a8a7-66e3e108b99d)
+
 
 ### Overview of Modules
 The following overview was made during development, and is subject to change. Is accurate as of 9/10/2023.
