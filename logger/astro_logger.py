@@ -22,8 +22,8 @@ class astroLogger(logging.Logger):
     def __init__(self, log_level=None, format='%(log_color)s%(asctime)s:%(name)s:%(levelname)-8s    %(message)s', date_format='%Y-%m-%d %H:%M:%S', enable_color = False):
         
         if log_level == None:
-            parentDir = os.path.realpath(__file__).replace(r'\logger\astro_logger.py', '')
-            with open(parentDir + r'\conf_files\settings.yaml', "r") as f:
+            parentDir = os.path.realpath(__file__).replace('/logger/astro_logger.py', '')
+            with open(parentDir + '/conf_files/settings.yaml', "r") as f:
                 settings = safe_load(f)
             
             match settings['DEBUG_MESSAGE_LEVEL'].lower():
