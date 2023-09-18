@@ -30,8 +30,7 @@ class command:
                 logger.debug(f"Found the {cmd} command in user_scripts")
                 break
 
-        
-        cmdString = f"{PARENT_DIRECTORY}/user_scripts/{realFile} {userInput.replace(cmd, '')}"
+        cmdString = f"{PARENT_DIRECTORY}/user_scripts/{realFile} {userInput.replace(cmd, '', 1)}"
 
         doThreading = False
         if (cmd == 'arduino') and ('--listen' in userInput or '-on' in userInput):
