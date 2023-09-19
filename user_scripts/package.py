@@ -165,13 +165,6 @@ if __name__ == "__main__":
                         >> package --install panoptes3d
                         
     ''')
-    parser.add_argument('--install_from_directory', '--from_directory', '-from_dir', action='store', type=str, help='''\
-    Install any package from a user specified directory that has already been unzipped. This argument only has an effect if 
-    it is run with the install argument.
-    Example:
-                        >> package --install custom_package_name --from_directory /path/to/package
-    ''')
-
     parser.add_argument('--remove', '--uninstall', '-r', action='store', nargs=1, type=str, help='''\
     Remove a standard panoptes package from your system. Only install packages from developers you trust.
     Example:
@@ -185,6 +178,19 @@ if __name__ == "__main__":
     Upgrade a standard panoptes package. Has the same effect as removing a package and reinstalling it.
     Example:
                         >> package --update panoptes3d''')
+    parser.add_argument('--install_from_directory', '--from_directory', '-from_dir', action='store', type=str, help='''\
+    Install any package from a user specified directory that has already been unzipped. This argument only has an effect if 
+    it is run with the either the --install or --update argument. When run with --install NAME, NAME can be any string and 
+    will be the keyword used to manage the package. 
+    Example:
+                        >> package --install custom_package_name --from_directory /path/to/package
+                        >> package --upgrade custom_package_name --from_directory /path/to/package
+    WARNING:
+    NAME should not be the same as any panoptes standard package name, 
+    otherwise the standard package(s) with shared names can not be installed, and will be met with an unclear error message:
+    "Package is already installed. Did you mean --update?". If you were to run --update, the custom package will be deleted
+    and the standard package will take its place.
+    ''')
 
     args = parser.parse_args()
     main(args)
