@@ -159,13 +159,13 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='Install or remove third-party standard panoptes packages.', formatter_class=argparse.RawTextHelpFormatter)
 
-    parser.add_argument('--install', '-i', action='store', nargs=1, type=str, help='''\
+    parser.add_argument('--install', '-i', action='store', nargs=1, type=str, metavar="<package name>", help='''\
     Install a standard panoptes package from your system. Only install packages from developers you trust.
     Example:
                         >> package --install panoptes3d
                         
     ''')
-    parser.add_argument('--remove', '--uninstall', '-r', action='store', nargs=1, type=str, help='''\
+    parser.add_argument('--remove', '--uninstall', '-r', action='store', nargs=1, type=str, metavar="<package name>", help='''\
     Remove a standard panoptes package from your system. Only install packages from developers you trust.
     Example:
                         >> package --remove panoptes3d
@@ -174,11 +174,11 @@ if __name__ == "__main__":
     parser.add_argument('--show', '-s', '-ls', action='store_true',
                         help='''List the names of installed packages.''')
     
-    parser.add_argument('--update', action='store', nargs=1, type=str, help='''\
+    parser.add_argument('--update', action='store', nargs=1, type=str, metavar="<package name>", help='''\
     Upgrade a standard panoptes package. Has the same effect as removing a package and reinstalling it.
     Example:
                         >> package --update panoptes3d''')
-    parser.add_argument('--install_from_directory', '--from_directory', '-from_dir', action='store', type=str, help='''\
+    parser.add_argument('--install_from_directory', '--from_directory', '-from_dir', action='store', type=str, metavar="<path to directory>", help='''\
     Install any package from a user specified directory that has already been unzipped. This argument only has an effect if 
     it is run with the either the --install or --update argument. When run with --install NAME, NAME can be any string and 
     will be the keyword used to manage the package. 
