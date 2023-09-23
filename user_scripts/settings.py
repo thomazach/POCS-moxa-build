@@ -37,19 +37,19 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='Edit system settings.', formatter_class=argparse.RawTextHelpFormatter)
 
-    parser.add_argument('--latitude', '-lat', action='store', nargs=1, type=float,
+    parser.add_argument('--latitude', '-lat', action='store', nargs=1, type=float, metavar='<latitude>',
                         help='''\
     Set the latitude of the telescope with a decimal degree. Will not update if in automated observation state. 
     Example: 
                         >> settings --latitude 44.56725
     ''')
-    parser.add_argument('--longitude', '-long', action='store', nargs=1,
+    parser.add_argument('--longitude', '-long', action='store', nargs=1, metavar='<longitude>',
                         help='''\
     Set the longitude of the telescope with a decimal degree. Will not update if in automated observation state. 
     Example: 
                         >> settings --longitude -123.28925
     ''')
-    parser.add_argument('--elevation', '--height', action='store', nargs=1,
+    parser.add_argument('--elevation', '--height', action='store', nargs=1, metavar='<elevation>',
                         help='''\
     Set the elevation above sea level of the telescope in meters. Will not update if in automated observation state. 
     Example: 
