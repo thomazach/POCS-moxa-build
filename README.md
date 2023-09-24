@@ -6,6 +6,31 @@ PANOTPES Observatory Control Software remotely operates a telescope via an SSH c
 - Scriptable CLI
 - Modular Software Architecture
 - Documentation for End Users and Developers
+# Table of Contents
+- [Moxa-POCS Introduction](#moxa-pocs)
+- [Key Features](#key-features)
+- [User Guide](#for-users)
+    - [Compatible Hardware](#compatible-hardware)
+    - [Install](#install)
+    - [Quick Start](#quick-start)
+    - [Operation](#operation)
+    - [Advanced Operation](#advanced-operation)
+    - [Packages](#packages)
+- [Developer Guide](#for-developers)
+    - [Commitment to End Users, Project PANOPTES, & Open Source](#commitment-to-end-users-project-panoptes--open-source)
+    - [Pull Requests](#pull-requests)
+    - [Modular Software Architecture](#modular-software-architecture)
+        - [Communication Between Modules](#communication-between-modules)
+        - [Overview of Modules](#overview-of-modules)
+             - [`core`](#core)
+             - [`observational_scheduler`](#observational_scheduler)
+             - [`logger`](#logger)
+             - [`mount`](#mount)
+             - [`cameras`](#cameras)
+             - [`arduino`](#arduino)
+             - [`weather_analysis`](#weather_analysis)
+    - [User Input and Configuration Files](#user-input-and-configuration-files)
+    - [Developing Packages](#developing-packages)
 
 # For Users:  
 Before beginning your build, you should [explore the official panoptes website](projectpanoptes.org), [contact](https://www.projectpanoptes.org/overview/contact) the PANOTPES team, and explore the [forum](forum.projectpanoptes.org). **The v1.0.0 release is missing three planned features:** weather sensing, detection and handling of power loss, and tracking correction.  
@@ -61,11 +86,12 @@ After a succesful installation:
 The unit is controlled through a custom shell that can be launched from a terminal with `python3 ~/POCS-moxa-build/panoptes-CLI.py`. Below is a table of available shell commands. Please note that the shell's built-in help documentation includes shortcuts not listed here, and may be in a more accessible format.
 |Command|Arguments|Description|
 |:---|:-----:|---|
-|`help` |None|Displays the base commands of the panoptes-CLI. Bases can be run with -h or --help as arguments to get further usage information.|
+|`help` |None|Displays the commands available to the panoptes-CLI, including commands added by packages. The listed commands can be run with -h or --help as arguments to get further usage information.|
 |`start`|`--force`|Puts the system into its autonomous observation state to run indefinetly and collect images. Requires settings to be configured and targets specified in a schedule file. The `--force` or `-f` argument reset the systems stored on/off states to off. This argument is useful for recovering after an unhandled error.|
 |`stop`|None|Safely exits the autonomous observation state. If unit is actively tracking targets and taking images, this will attempt to gracefully exit.|
 |`schedule`|`--show_active_observation`, `--list_target_files`, `--select <name>.yaml`, `--new <name>.yaml`, `--edit <name>.yaml`, `--delete <name>.yaml` |Interact with the schedule system and specify targets to observe. The `--show_active_observation` or `-show` argument displays the name of the currently selected schedule file, the targets it contains, and prompts the user to view more detailed information about each target. The `--list_target_files` or `-ls` argument will list the names of available schedule files that the unit can use. The `--select` or `-s` argument sets the current schedule file to the one specified after `--select` (ex: `>> schedule --select test_fields.yaml`). The `--new` or `-n` argument allows the user to specify the name of a new schedule file that will be created and then prompts the user for target information. The `--edit` or `-e` argument lets the user edit the specified schedule file interactively. The `--delete` or `-rm` argument deletes the schedulefile specified by the user.|
 |`settings`|`--show`,`--latitude <float>`, `--longitude <float>`, `--elevation <float>`, `-set_log` |Edit system settings, including location and displayed logging level. The `--show` argument displays the current settings. The `--latitude` followed by a number sets the latitude. The `--longitude` argument followed by a number sets the longitude. The `--elevation` argument followed by a number sets the elevation above sea level in meters. The `-set_log` argument followed by `DEBUG`, `INFO`, `WARNING`, `ERROR`, or `CRITICAL` sets the lowest displayed logging level.|
+|`package`|`--install`, `--remove`, `--update`, `--show`, `--install_from_directory`|Manage standard packages by installing, removing, and updating them. After an argument, specify the package name (this is not case sensitive). Note that the `--update` argument removes and reinstalls the package, which will delete stored settings. The `--show` argument will list the names of currently installed packages. The `--install` and `--update` arguments can be passed an additionaly `--install_from_directory` argument which will attempt to install the contents of the specified directory (ex: `>> package --install custom_package_name --install_from_directory /path/to/package/directory`). When `--install_from_directory` is run with `--install`, the package name specified after `--install` can be anything, and will have no effect on what is installed, but will be the name used to manage future removal and updating of the package. When updating a package that was installed from a directory, the `--install_from_directory` argument must be specified and the supplied path should be an updated directory of the same package.|
 |`arduino`|`on`, `off`, `current`, `read_weather`,`cameras`, `mount`, `fan`, `weather`, `unassigned`|Keyword command for interacting with the arduino. Arguments: `on` will call arduino.py and enable control of the arduino using the other commands. `off` will stop arduino.py and leave the arduino running with current relays. (relays will be turned on if `arduino on` is run again)|
 |`arduino current`|None|Returns the electrical current flowing through each relay as a 0-1023 integer (Will be updated to be an actual current unit later).|
 |`arduino read_weather`|None|Currently non-functional, but will return values from the weather sensor once the arduino weather station is developed.|
@@ -109,6 +135,12 @@ while True:
 ### NOT TESTED ON HARDWARE, use at your own risk
 ```
 **Automated scripts like this will not work well with commands that require user input.** If an advanced user creates a script that is truly helpful, it can be added to the `user_scripts` folder and integrated with the panoptes-CLI to give users even more CLI commands and tools.  
+## Packages  
+Moxa-POCS supports the development and installation of third-party packages. Packages are designed to add features and customization options not present in default PANOPTES builds, and may require additional hardware. You can install standard and non-standard PANOPTES packages through the panoptes-CLI. For standard packages, simply use `>> package --install <package name>`, for non-standard packages, you will need to specify the directory(outside of `~/POCS-moxa-build`) containing the package. This can be done with the `-from_dir` argument. For example:  
+`>> package --install <desired name of package> -from_dir </path/to/package>`  
+As of 9/24/2023, no standard packages are ready to be integrated into the panoptes-CLI, and the `-from_dir` option will be needed if developers provide early access.  
+
+
 # For Developers:  
 ## Commitment to End Users, Project PANOPTES, & Open Source
 As a repository contributing to citizen science, we have special commitments that need to be upheld. This is an open source repository, and pull requests that add barriers to development, are obfuscated, implement pay walls, or require the user to pay for third party software/dependencies will not be merged. We also have end users with vastly different computer skills. As a developer, it is your responsibility to thoroughly document the features you create with guides and examples. Merges to main (production) will not be accepted without reasonable documentation. Features should be developed based on community and PANOPTES team feedback, either from the weekly meetings or the [PANOPTES forum](forum.projectpanoptes.org).  
@@ -164,4 +196,25 @@ The arduino module uses pyserial for direct serial communication. The arduino mo
 The weather station is currently being redesigned, and as such this module is a work-in-progress. The main concept is that the module will analyze the results of a connected weather sensor and communicate a True or False statement about weather safety to core. This statement is currently forced to be true in the `core` module for the time being.
 
 ## User Input and Configuration Files
-We use yaml files to store configuration information. We don't allow users to edit these directly. It is best practice for this project to keep `.yaml` hidden from the user in production, and allow the user to edit them using a dedicated front end. Developers are responsible for providing documentation for users of all skill levels (assuming basic computer knowledge).
+We use yaml files to store configuration information. We don't allow users to edit these directly. It is best practice for this project to keep `.yaml` hidden from the user in production, and allow the user to edit them using a dedicated front end. Developers are responsible for providing documentation for users of all skill levels (assuming basic computer knowledge).  
+## Developing Packages
+The `package` command in the panoptes-CLI gives developers ways of adding additional functionality to units that can be easily reproduced by users. The `>>package --install <standard package name>` command searches for `<standard package name>` in a match and case statement, where each case runs the standard package's custom installation instructions. Generally, this installs any required dependencies, downloads a package's source code to a temporary directory, copies and pastes the contents of the temporary folder into `~/POCS-moxa-build`, and finally deletes the temporary folder. To create your own custom package, create a github repository with the source code of the package located in `packages/name-of-your-package`, and CLI integration in `user_scripts/panoptes_CLI_compatible_command.py` (note that the CLI supports any language as long as it is executable as a script with a proper shebang). This is the suggested format so that your package's files and commands can be easily located by the user. While no standard packages exist yet, the panoptes3D project is currently under development, and [this branch](https://github.com/sarumanplaysguitar/panoptes3D/tree/moxa-pocs-panoptes3d-pkg) is being organized into a standard PANOPTES package. To become a standard package you can open a pull request on the develop branch that modifies the `install` function in `user_scripts/package.py` with custom installation instructions that:  
+  
+1. Are matched to your package name
+2. Download your tar ball from your github release
+3. Unzip the tar ball to `~/your-repo-name` and delete the old tar ball
+4. Install any relevant dependencies on both the Raspbian and Moxa builds
+5. package.py will then copy and paste the package's file structure into `POCS-moxa-build` and record the locations of installed files
+6. package.py will then delete the temporary directory containing the standard package
+  
+To update a standard package, you will need to make another pull request for your package that changes the link of the older release to that of the newer one. **You must make this pull request using the same github account.** In order **for your pull request to be merged**, your package must:  
+  
+1. Provide new functionality and/or features
+2. Be integrated with the `panoptes-CLI` by placing commands in `user_scripts/your-executable-command-here` and handle all user input exclusively through the `panoptes-CLI`
+3. Integrated commands should support the development of light weight wrappers, as explained in the [Advanced Operation section](#advanced-operation)
+4. Integrated commands must have a `-h` or `--help` argument that explains how to use them.
+5. If the package is written in python, it should use this project's logging object, explained [here](#logger). If it is written in a different language, logs should be placed in `logger/logs/package_logs/package_name`.
+6. If required, package settings should be placed in `conf_files/package-name-settings.yaml`
+7. Be documented and in accordance with [Commitment to End Users, Project PANOPTES, & Open Source](#commitment-to-end-users-project-panoptes--open-source)
+
+**If your package universally improves source code for all users, and there are no reasons why some users wouldn't want the features, we would perfer to merge your package directly to source code.**  
