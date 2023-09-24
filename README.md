@@ -44,7 +44,8 @@ $ sudo apt-get upgrade
 $ sudo apt install python3-pip
 $ sudo mv /usr/lib/python3.11/EXTERNALLY-MANAGED /usr/lib/python3.11/EXTERNALLY-MANAGED.old
 $ sudo pip install astropy   # sudo required otherwise it will try to make a user installation
-$ sudo pip install colorlog  # sudo required otherwise it will try to make a user installation
+$ sudo pip install colorlog
+$ sudo pip install pyserial
 ### Choose 2 (stable version) after running the command below ###
 $ wget https://raw.githubusercontent.com/gonzalo/gphoto2-updater/master/gphoto2-updater.sh && wget https://raw.githubusercontent.com/gonzalo/gphoto2-updater/master/.env && chmod +x gphoto2-updater.sh && sudo ./gphoto2-updater.sh
 
