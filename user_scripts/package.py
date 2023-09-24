@@ -33,6 +33,22 @@ def main(args):
                 pass
 
             if not args.install_from_directory:
+
+                # TODO: Remove on merge of standard package
+                print(f"""\
+{bcolors.PURPLE}
+                                                                ---------- Feature Not Implemented Statement ----------
+{bcolors.FAIL}
+    There are no standard packages that are ready for full release as of 9/24/2023. If you're interested in testing packages early, contact the developers of the package. 
+    If you believe this is a mistake, check the POCS-moxa-build github to see if your using an old version. If you're running an old version, update on the command line using {bcolors.ENDC}
+    $ cd POCS-moxa-build
+    $ git stash
+    $ git pull {bcolors.FAIL}
+    The update process will change your settings.yaml file, and it will need to be setup again using the panoptes-CLI. You will also need to select your active schedule file 
+    again using the schedule panoptes-CLI command.
+{bcolors.ENDC}""")
+                return
+
                 match packageName:
                 # TODO: Should be using wget with a tar balled github release to create a temporary repo 
                 # somewhere (probably the home directory), once the package is there, set the 
