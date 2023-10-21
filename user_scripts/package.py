@@ -35,7 +35,7 @@ def main(args):
             if not args.install_from_directory:
 
                 match packageName.lower():
-                    
+
                     case "ieq30pro":
                         logger.debug("Found install case: iEQ30Pro v1.0.1")
                         logger.info("Installing package: iEQ30Pro v1.0.1")
@@ -56,14 +56,14 @@ def main(args):
                         logger.info("Installing package: CEM40 v1.0.0")
 
                         logger.debug("Downloading tar ball...")
-                        os.system("cd ~; wget -q https://github.com/thomazach/Moxa-POCS-Fundamental-Packages/archive/refs/tags/CEM40-Package-v1.0.0.tar.gz")
+                        os.system("cd ~; wget -q https://github.com/thomazach/Moxa-POCS-Fundamental-Packages/archive/refs/tags/CEM40-Package-v1.0.1.tar.gz")
                         logger.debug("Done downloading.")
 
                         logger.debug("Unpacking tar file...")
-                        os.system("cd ~; tar -xzf CEM40-Package-v1.0.0.tar.gz; rm CEM40-Package-v1.0.0.tar.gz")
+                        os.system("cd ~; tar -xzf CEM40-Package-v1.0.1.tar.gz; rm CEM40-Package-v1.0.1.tar.gz")
                         logger.debug("Done downloading.")
 
-                        packagePath = "~/Moxa-POCS-Fundamental-Packages-CEM40-Package-v1.0.0"
+                        packagePath = "~/Moxa-POCS-Fundamental-Packages-CEM40-Package-v1.0.1"
                         logger.info(f"Set package path to: {packagePath}")
 
                     #case "panoptes3d":
@@ -78,7 +78,25 @@ def main(args):
                     case _:
                         print(bcolors.FAIL + "Invalid package name." + bcolors.ENDC)
                         return
-                
+            
+            logger.debug("Checking package compatibility...")
+            out = subprocess.run(f"cd ~/{packagePath}; find . -type b,c,p,f,l,s", shell=True, stdout=subprocess.PIPE)
+            out = out.stdout.decode('utf-8').split("\n")
+            for file in out[1:]:
+                file = file.replace("./", "")
+                if not "git" in file:
+                    for package in allPackages:
+                        for paths in package:
+                            paths = paths[paths.find("POCS-moxa-build/") + 16:] # Only use paths in the parent directory, not absolute paths
+                            if paths == file:
+                                print(f"{bcolors.FAIL} Incompatible packages, current package shares a file path with POCS-moxa-buld/{paths}\n 
+                                      Check your package list to make sure you aren't trying to install two modules of the same type. For example,
+                                      if you are trying to install a new or non-standard mount module, you will need to remove the previous mount's software package.
+                                      If this is not the cause of the issue, notify the package developer.{bcolors.ENDC}")
+
+
+
+
             logger.info(f"Adding {packageName}'s files to the POCS-moxa-build folder tree.")
             out = subprocess.run(f"cp -r -v {packagePath}/* {PARENT_DIR}", shell=True, stdout=subprocess.PIPE)
 
@@ -111,6 +129,7 @@ def main(args):
             
             if not isUpdate:
                 print(f"{bcolors.OKGREEN}Installed {packageName}{bcolors.ENDC}")
+                logger.info(f"Installed {packageName}!")
 
     def remove(packageName):
 
