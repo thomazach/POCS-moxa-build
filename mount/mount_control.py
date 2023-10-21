@@ -53,11 +53,11 @@ def get_mount_port():
 
     for usbPort in usbList:
         print(usbPort)
-        with serial.Serial(usbPort, 9600, timeout=10) as mount:
+        with serial.Serial(usbPort, 115200, timeout=10) as mount:
             mount.write(b':MountInfo#')
             out = mount.read(4)
             logger.debug(f"Serial response from {usbPort} is {out}")
-            if out == b'0030':
+            if out == b'0040':
                 logger.debug(f"Found mount on {usbPort}!")
                 return mount
     
@@ -95,10 +95,10 @@ def connect_to_mount():
 def getCurrentSkyCoord(port):
     ### Returns a SkyCoord object of whatever the mount thinks it's currently pointing at (polar alignment required) ###
     logger.debug("Getting the current RA/DEC coordinates of the mount.")
-    port.write(b':GEC#')
+    port.write(b':GEP#')
     rawPosition = port.read(18).decode('utf-8')
     rawDEC, rawRA = float(rawPosition[0:9]), float(rawPosition[9:17]) #(0.01 arcseconds, milliseconds)
-    RADecimalDegree = rawRA * 1/1000 * 360/86400 # sec/millisec * deg/sec
+    RADecimalDegree = Angle(str(rawRA * 1/100 + 's')).deg
     DECDecimalDegree = Angle(str(rawDEC * 1/100) + 's').deg
     
     logger.debug(f"{RADecimalDegree=}     {DECDecimalDegree=}")
@@ -196,14 +196,10 @@ def slewToTarget(coordinates, mountSerialPort=None):
 
     time.sleep(20)
 
-    RA_string = str(round(coordinates.ra.deg * 24/360 * 60 * 60 * 1000))
-    print(RA_string)
-    print(len(RA_string))
-    NumZeros = max(0, 8 - len(RA_string))
-    print(f"{NumZeros=}")
+    RA_string = str(round(coordinates.ra.deg * 60 * 60 * 100))
+    NumZeros = max(0, 9 - len(RA_string))
 
     RA_milliseconds = "0" * NumZeros + RA_string
-    print(RA_milliseconds)
 
     val = round(coordinates.dec.deg * 60 * 60 * 100)
     NumZeros = max(0, 8 - len(RA_string))
@@ -212,9 +208,7 @@ def slewToTarget(coordinates, mountSerialPort=None):
     else:
         DEC_SignedCentiArcseconds = "-" + "0" * NumZeros + str(val)
 
-    print(DEC_SignedCentiArcseconds)
-
-    RA_cmd = f':Sr{RA_milliseconds}#'.encode()
+    RA_cmd = f':SRA{RA_milliseconds}#'.encode()
     DEC_cmd = f':Sd{DEC_SignedCentiArcseconds}#'.encode()
 
     logger.debug(f"{RA_cmd=}      {DEC_cmd=}")
@@ -227,7 +221,7 @@ def slewToTarget(coordinates, mountSerialPort=None):
     mountSerialPort.write(DEC_cmd)
     _ = mountSerialPort.read()
     logger.debug(f"Result of sending the DEC_cmd: {_}")
-    mountSerialPort.write(b':MS#')
+    mountSerialPort.write(b':MS1#')
     _ = mountSerialPort.read()
     logger.info("Slewing to target.")
     logger.debug(f"Result of sending the slew command: {_}")

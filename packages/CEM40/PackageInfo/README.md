@@ -1,0 +1,2 @@
+# CEM40 Mount Software Package
+This moxa-pocs package is designed for the CEM40 German equatorial telescope mount. It should work with a wide range of mounts listed in iOptron's [RS-232 Serial Command Language V3.10](http://www.ioptron.com/v/ASCOM/RS-232_Command_Language2014V310.pdf). This module can be installed, uninstalled, and upgraded using the panoptes-CLI within moxa-pocs, specifically with the package command.

@@ -80,19 +80,27 @@ def main(args):
                         return
             
             logger.debug("Checking package compatibility...")
-            out = subprocess.run(f"cd ~/{packagePath}; find . -type b,c,p,f,l,s", shell=True, stdout=subprocess.PIPE)
+            out = subprocess.run(f"cd {packagePath}; find . -type b,c,p,f,l,s", shell=True, stdout=subprocess.PIPE)
             out = out.stdout.decode('utf-8').split("\n")
             for file in out[1:]:
                 file = file.replace("./", "")
                 if not "git" in file:
                     for package in allPackages:
-                        for paths in package:
+                        for paths in allPackages[package]:
                             paths = paths[paths.find("POCS-moxa-build/") + 16:] # Only use paths in the parent directory, not absolute paths
                             if paths == file:
-                                print(f"{bcolors.FAIL} Incompatible packages, current package shares a file path with POCS-moxa-buld/{paths}\n 
-                                      Check your package list to make sure you aren't trying to install two modules of the same type. For example,
-                                      if you are trying to install a new or non-standard mount module, you will need to remove the previous mount's software package.
-                                      If this is not the cause of the issue, notify the package developer.{bcolors.ENDC}")
+                                logger.error(f"The specified package {packageName} is incompatible since it's trying to use a file location already claimed by the system or other packages: POCS-moxa-build/{paths}") 
+                                print(f"""{bcolors.FAIL}
+Failed to install package.\n\n
+The package trying to be installed, {packageName}, is trying to create the file POCS-moxa-build/{paths}, which the {package} package is already using. This means
+that {packageName} and {package} packages can't be installed at the same time. If the {packageName} package is for new hardware, try removing the software package for your old
+hardware. Note that Moxa-POCS comes with default software packages for the cem40, gphoto2 compatible cameras, and arduino power header. It may be useful to
+list out the currently installed packages on the system with >>package -ls.\n
+If this error has been caused by non-hardware modules, two developers have placed a file with the same name in the same location. Notify the package developer(s) if possible to ask for a fix.{bcolors.ENDC}""")
+                                logger.debug("Removing incompatible package's files from this machine.")
+                                os.system(f"cd ~; rm -r -d {packagePath}")
+                                logger.debug("Done.") 
+                                return
 
 
 
