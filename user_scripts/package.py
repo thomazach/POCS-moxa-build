@@ -34,34 +34,47 @@ def main(args):
 
             if not args.install_from_directory:
 
-                # TODO: Remove on merge of standard package
-                print(f"""\
-{bcolors.PURPLE}
-                                                                ---------- Feature Not Implemented Statement ----------
-{bcolors.FAIL}
-    There are no standard packages that are ready for full release as of 9/24/2023. If you're interested in testing packages early, contact the developers of the package. 
-    If you believe this is a mistake, check the POCS-moxa-build github to see if your using an old version. If you're running an old version, update on the command line using {bcolors.ENDC}
-    $ cd POCS-moxa-build
-    $ git stash
-    $ git pull {bcolors.FAIL}
-    The update process will change your settings.yaml file, and it will need to be setup again using the panoptes-CLI. You will also need to select your active schedule file 
-    again using the schedule panoptes-CLI command.
-{bcolors.ENDC}""")
-                return
+                match packageName.lower():
+                    
+                    case "ieq30pro":
+                        logger.debug("Found install case: iEQ30Pro v1.0.1")
+                        logger.info("Installing package: iEQ30Pro v1.0.1")
 
-                match packageName:
-                # TODO: Should be using wget with a tar balled github release to create a temporary repo 
-                # somewhere (probably the home directory), once the package is there, set the 
-                # packagePath variable and the system will then copy paste it to the correct 
-                # location and record the file positions.
-                    case "panoptes3d":
-                        logger.debug("Found install case: panoptes3d")
-                        # download tar ball
-                        logger.info("Unpacking tar file.")
-                        os.system("cd ~; tar -xzf panoptes_package.tar.gz; rm panoptes_package.tar.gz")
-                        packagePath = "~/panoptes_package"
-                    case "panoptes3d-vr":
-                        packagePath = "~/panoptespackage"
+                        logger.debug("Downloading tar ball...")
+                        os.system("cd ~; wget -q https://github.com/thomazach/Moxa-POCS-Fundamental-Packages/archive/refs/tags/iEQ30Pro-Package-v1.0.1.tar.gz")
+                        logger.debug("Done downloading.")
+
+                        logger.debug("Unpacking tar file...")
+                        os.system("cd ~; tar -xzf iEQ30Pro-Package-v1.0.1.tar.gz; rm iEQ30Pro-Package-v1.0.1.tar.gz")
+                        logger.debug("Done unpacking.")
+
+                        packagePath = "~/Moxa-POCS-Fundamental-Packages-iEQ30Pro-Package-v1.0.1"
+                        logger.info(f"Set package path to: {packagePath}")
+                    
+                    case "cem40":
+                        logger.debug("Found install case: CEM40 v1.0.0")
+                        logger.info("Installing package: CEM40 v1.0.0")
+
+                        logger.debug("Downloading tar ball...")
+                        os.system("cd ~; wget -q https://github.com/thomazach/Moxa-POCS-Fundamental-Packages/archive/refs/tags/CEM40-Package-v1.0.0.tar.gz")
+                        logger.debug("Done downloading.")
+
+                        logger.debug("Unpacking tar file...")
+                        os.system("cd ~; tar -xzf CEM40-Package-v1.0.0.tar.gz; rm CEM40-Package-v1.0.0.tar.gz")
+                        logger.debug("Done downloading.")
+
+                        packagePath = "~/Moxa-POCS-Fundamental-Packages-CEM40-Package-v1.0.0"
+                        logger.info(f"Set package path to: {packagePath}")
+
+                    #case "panoptes3d":
+                    #    logger.debug("Found install case: panoptes3d")
+                    #    # download tar ball
+                    #    logger.info("Unpacking tar file.")
+                    #    os.system("cd ~; tar -xzf panoptes_package.tar.gz; rm panoptes_package.tar.gz")
+                    #    packagePath = "~/panoptes_package"
+                    #case "panoptes3d-vr":
+                    #    packagePath = "~/panoptespackage"    
+
                     case _:
                         print(bcolors.FAIL + "Invalid package name." + bcolors.ENDC)
                         return
