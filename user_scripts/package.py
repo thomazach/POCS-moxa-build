@@ -97,9 +97,10 @@ that {packageName} and {package} packages can't be installed at the same time. I
 hardware. Note that Moxa-POCS comes with default software packages for the cem40, gphoto2 compatible cameras, and arduino power header. It may be useful to
 list out the currently installed packages on the system with >>package -ls.\n
 If this error has been caused by non-hardware modules, two developers have placed a file with the same name in the same location. Notify the package developer(s) if possible to ask for a fix.{bcolors.ENDC}""")
-                                logger.debug("Removing incompatible package's files from this machine.")
-                                os.system(f"cd ~; rm -r -d {packagePath}")
-                                logger.debug("Done.") 
+                                if not args.install_from_directory:
+                                    logger.debug("Removing incompatible package's files from this machine.")
+                                    os.system(f"cd ~; rm -r -d {packagePath}")
+                                    logger.debug("Done.") 
                                 return
 
 
