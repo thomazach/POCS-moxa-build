@@ -37,33 +37,33 @@ def main(args):
                 match packageName.lower():
 
                     case "ieq30pro":
-                        logger.debug("Found install case: iEQ30Pro v1.0.1")
-                        logger.info("Installing package: iEQ30Pro v1.0.1")
+                        logger.debug("Found install case: iEQ30Pro v1.1.0")
+                        logger.info("Installing package: iEQ30Pro v1.1.0")
 
                         logger.debug("Downloading tar ball...")
-                        os.system("cd ~; wget -q https://github.com/thomazach/Moxa-POCS-Fundamental-Packages/archive/refs/tags/iEQ30Pro-Package-v1.0.1.tar.gz")
+                        os.system("cd ~; wget -q https://github.com/thomazach/Moxa-POCS-Fundamental-Packages/archive/refs/tags/iEQ30Pro-Package-v1.1.0.tar.gz")
                         logger.debug("Done downloading.")
 
                         logger.debug("Unpacking tar file...")
-                        os.system("cd ~; tar -xzf iEQ30Pro-Package-v1.0.1.tar.gz; rm iEQ30Pro-Package-v1.0.1.tar.gz")
+                        os.system("cd ~; tar -xzf iEQ30Pro-Package-v1.1.0.tar.gz; rm iEQ30Pro-Package-v1.1.0.tar.gz")
                         logger.debug("Done unpacking.")
 
-                        packagePath = "~/Moxa-POCS-Fundamental-Packages-iEQ30Pro-Package-v1.0.1"
+                        packagePath = "~/Moxa-POCS-Fundamental-Packages-iEQ30Pro-Package-v1.1.0"
                         logger.info(f"Set package path to: {packagePath}")
                     
                     case "cem40":
-                        logger.debug("Found install case: CEM40 v1.0.0")
-                        logger.info("Installing package: CEM40 v1.0.0")
+                        logger.debug("Found install case: CEM40 v1.1.0")
+                        logger.info("Installing package: CEM40 v1.1.0")
 
                         logger.debug("Downloading tar ball...")
-                        os.system("cd ~; wget -q https://github.com/thomazach/Moxa-POCS-Fundamental-Packages/archive/refs/tags/CEM40-Package-v1.0.1.tar.gz")
+                        os.system("cd ~; wget -q https://github.com/thomazach/Moxa-POCS-Fundamental-Packages/archive/refs/tags/CEM40-Package-v1.1.0.tar.gz")
                         logger.debug("Done downloading.")
 
                         logger.debug("Unpacking tar file...")
-                        os.system("cd ~; tar -xzf CEM40-Package-v1.0.1.tar.gz; rm CEM40-Package-v1.0.1.tar.gz")
+                        os.system("cd ~; tar -xzf CEM40-Package-v1.1.0.tar.gz; rm CEM40-Package-v1.1.0.tar.gz")
                         logger.debug("Done downloading.")
 
-                        packagePath = "~/Moxa-POCS-Fundamental-Packages-CEM40-Package-v1.0.1"
+                        packagePath = "~/Moxa-POCS-Fundamental-Packages-CEM40-Package-v1.1.0"
                         logger.info(f"Set package path to: {packagePath}")
 
                     #case "panoptes3d":
