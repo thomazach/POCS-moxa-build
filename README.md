@@ -34,7 +34,7 @@ PANOTPES Observatory Control Software remotely operates a telescope via an SSH c
     - [Developing Packages](#developing-packages)
 
 # For Users:  
-Before beginning your build, you should [explore the official panoptes website](projectpanoptes.org), [contact](https://www.projectpanoptes.org/overview/contact) the PANOTPES team, and explore the [forum](forum.projectpanoptes.org). **The v1.0.0 release is missing three planned features:** weather sensing, detection and handling of power loss, and tracking correction.  
+Before beginning your build, you should [explore the official panoptes website](projectpanoptes.org), [contact](https://www.projectpanoptes.org/overview/contact) the PANOTPES team, and explore the [forum](forum.projectpanoptes.org). **The v1.0.0 release is missing two planned features:** weather sensing and handling of sudden power loss.
 ## Compatible Hardware  
 Moxa-POCS only offers "out of the box" functionality for a single build. Currently, it is designed to work with a [CEM40]([https://www.ioptron.com/product-p/3000e.htm](https://www.ioptron.com/product-p/c401a1.htm)) equitorial telescope mount, two [Cannon EOS 100Ds](https://www.canon.com.cy/for_home/product_finder/cameras/digital_slr/eos_100d/), [Arduino Uno Rev3](https://store.arduino.cc/products/arduino-uno-rev3) accompanied by a [power distribution header](https://www.infineon.com/dgdl/Infineon-24V_ProtectedSwitchShield_with_Profet+24V_for_Arduino_UsersManual_10.pdf-UserManual-v01_01-EN.pdf?fileId=5546d46255dd933d0156074933e91fe2), and either a [moxa control computer](https://www.moxa.com/en/products/industrial-computing/arm-based-computers/uc-8100a-me-t-series) or Raspberry Pi. You can find in-depth documentation for this build here(WIP). Moxa-POCS can also support the [iEQ30Pro](https://www.ioptron.com/product-p/3000e.htm) mount, however a package will need to be installed after downloading the baseline software. Using other hardware will likely cause problems, and you will need to develop solutions on your own.
 ## Install
@@ -42,6 +42,7 @@ On Raspberry Pi Unbuntu Server:
 ```
 $ sudo apt-get update
 $ sudo apt-get upgrade
+$ sudo apt-get install dcraw=9.27
 $ sudo apt install python3-pip
 $ sudo mv /usr/lib/python3.11/EXTERNALLY-MANAGED /usr/lib/python3.11/EXTERNALLY-MANAGED.old
 $ sudo pip install astropy   # sudo required otherwise it will try to make a user installation
@@ -52,6 +53,7 @@ $ wget https://raw.githubusercontent.com/gonzalo/gphoto2-updater/master/gphoto2-
 
 $ git clone https://github.com/thomazach/POCS-moxa-build.git
 ```
+Note that the version of dcraw provided is available in Debian 9 (stretch). The dcraw install step is the only one that hasn't been tested on Ubuntu server.  
 On a Moxa processor running Moxa Industrial Linux 1 (MIL1): (This section is still a work in progress.)
 ```
 sudo nano /etc/network/interfaces.d
@@ -85,6 +87,13 @@ After a succesful installation:
 3. Use the `settings` shell command to set the location of your unit.
 4. Use the `schedule` shell command to create a schedule file and select it as the active schedule file.
 5. Use the `start` shell command to put the unit into an automated observation state  
+  
+As an optional step that will improve your unit's performance, you can enable plate solving by:
+1. Visiting [nova.astrometry.net](nova.astrometry.net) and logging in/creating an account
+2. Going to your Dashboard --> My Profile
+3. Finding your API key (the green text in the "Account Info" box) 
+4. Using the `settings --plate_solve <API key from step 3>` command to enter your API key
+As an added bonus, you can also use astrometry.net's Dashboard --> My Images tab to see some of the images your unit is taking in real time.  
 ## Operation
 The unit is controlled through a custom shell that can be launched from a terminal with `python3 ~/POCS-moxa-build/panoptes-CLI.py`. Below is a table of available shell commands. Please note that the shell's built-in help documentation includes shortcuts not listed here, and may be in a more accessible format.
 |Command|Arguments|Description|
@@ -192,7 +201,7 @@ This module is imported by core. It contains a target class that has important i
 #### `logger`
 This module is the system wide logging object, called `astroLogger`. It supports colored logs and inherits python's `logging.Logger` object, and is used in the same way. When initializing the logger, please use `logger = astroLogger(color_enabled=True)` for consistency. Log files are located in `/logger/logs/`, and each python file is given its own log file.
 #### `mount` 
-This mount module is designed for the [CEM40](https://www.ioptron.com/product-p/c401a1.htm). This mount uses the serial [iOptron RS-232 Command Language V3.10](https://www.ioptron.com/v/ASCOM/RS-232_Command_Language2014V310.pdf). The mount module uses this command language along with pyserial to control the mount. After core writes a target instance to `current_target.pickle`, it executes the mount module which will then establish communication with the mount, start an ongoing loop and read the pickle file. If the target instance's `cmd` attribute is `'slew to target'` the mount will unpark, go to the home position, slew to the specified coordinates in the pickle file, and start tracking. It will then change the pickle files `cmd` attribute to `'take images'` and call the `cameras` module. The mount loop will end and park the mount after the cameras have finished taking images.
+This mount module is designed for the [CEM40](https://www.ioptron.com/product-p/c401a1.htm). This mount uses the serial [iOptron RS-232 Command Language V3.10](https://www.ioptron.com/v/ASCOM/RS-232_Command_Language2014V310.pdf). The mount module uses this command language along with pyserial to control the mount. After core writes a target instance to `current_target.pickle`, it executes the mount module which will then establish communication with the mount, start an ongoing loop and read the pickle file. If the target instance's `cmd` attribute is `'slew to target'` the mount will unpark, go to the home position, slew to the specified coordinates in the pickle file, and start tracking. It will then change the pickle files `cmd` attribute to `'take images'` and call the `cameras` module. If the specific mount module/package has tracking correction or guiding set up, this module will also plate solve result images and perform corrections accordingly. The mount loop will end and park the mount after the cameras have finished taking images.
 #### `cameras` 
 The camera module uses the [gphoto2](http://gphoto.org/) command line interface to control the cameras. After it is called by the mount module, it reads the pickle file to make sure that the command is `'take images'`, at which point it automatically detects the cameras, and takes an "observation," which is several long exposure images on both cameras using multiprocessing. The specifics of the observation are determined by the `camera_settings` attribute in the pickle file. The images are stored to the `images` directory with timestamped directories. Once both multiprocesses have finished, the module sets the `cmd` attribute of the pickle file to `'observation complete'` and exits. This command signals the mount module to park, and once parked the mount module issues a command that tells core to send the next target to observe.
 #### `arduino`
