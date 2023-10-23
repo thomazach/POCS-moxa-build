@@ -3,6 +3,7 @@ import sys
 import time
 import serial
 import pickle
+import threading
 
 from yaml import safe_load
 
@@ -62,7 +63,7 @@ def get_mount_port():
                 return mount
     
     logger.critical("Mount not found.")
-    raise Exception("Failed to find mount. Possibly bad serial communication. Required mount for this software is the iEQ30Pro from iOptron.")
+    raise Exception("Failed to find mount. Possibly bad serial communication. Required mount for this software is the CEM40 from iOptron.")
 
 def connect_to_mount():
 
@@ -106,6 +107,17 @@ def getCurrentSkyCoord(port):
     return SkyCoord(RADecimalDegree, DECDecimalDegree, unit=u.deg)
 
 def park_slewToTarget(coordinates, mountSerialPort):
+    '''
+        Slew to a target. This is very inacurate, it uses the slewing rate to figure out how long it should slew for.
+        This method is the equivalent of hitting the buttons on the hand controller, it works well for parking though.
+
+        Inputs:
+            coordinates
+                An astropy SkyCoord object with the desired final coordinates
+
+            mountSerialPort
+                A serial.Serial object representing the mount    
+    '''
 
     if not mountSerialPort.is_open:
         mountSerialPort.open()
@@ -184,6 +196,14 @@ def park_slewToTarget(coordinates, mountSerialPort):
                 break
 
 def slewToTarget(coordinates, mountSerialPort=None):
+    '''
+        Slews to coordinates, from a parked states.
+
+        coordinates is a astropy SkyCoord object
+
+        mountSerialPort is a serial.Serial object representing the mount
+
+    '''
 
     if not mountSerialPort.is_open:
          mountSerialPort.open()
@@ -196,19 +216,19 @@ def slewToTarget(coordinates, mountSerialPort=None):
 
     time.sleep(20)
 
+    # Format desired coordinates into serial commands
     RA_string = str(round(coordinates.ra.deg * 60 * 60 * 100))
     NumZeros = max(0, 9 - len(RA_string))
-
-    RA_milliseconds = "0" * NumZeros + RA_string
+    RA_CentiArcseconds = "0" * NumZeros + RA_string
 
     val = round(coordinates.dec.deg * 60 * 60 * 100)
-    NumZeros = max(0, 8 - len(RA_string))
+    NumZeros = max(0, 8 - len(str(val)))
     if val >= 0:
         DEC_SignedCentiArcseconds = "+" + "0" * NumZeros + str(val)
     else:
         DEC_SignedCentiArcseconds = "-" + "0" * NumZeros + str(val)
 
-    RA_cmd = f':SRA{RA_milliseconds}#'.encode()
+    RA_cmd = f':SRA{RA_CentiArcseconds}#'.encode()
     DEC_cmd = f':Sd{DEC_SignedCentiArcseconds}#'.encode()
 
     logger.debug(f"{RA_cmd=}      {DEC_cmd=}")
@@ -228,6 +248,15 @@ def slewToTarget(coordinates, mountSerialPort=None):
     time.sleep(30)
 
 def park(mountSerialPort, location):
+    '''
+    Parks the mount from any position. Works by converting the alt-az coordinates that represent
+    looking down at the ground with the weather proofing up into equitorial coordinates and calling
+    the old slew to target function, which takes a delta of equitorial coordinates and calculates 
+    slew times. It was not accurate enough for slewing to actual targets, but works well for parking.
+
+    mountSerialPort - serial.Serial object representing the mount
+
+    '''
 
     logger.info("Parking the mount.")
 
@@ -237,6 +266,275 @@ def park(mountSerialPort, location):
         mountSerialPort.open()
 
     park_slewToTarget(parkPosition, mountSerialPort)
+
+def correctTracking(mountSerialPort, coordinates, astrometryAPI, abortOnFailedSolve):
+    '''
+     This function is responsible for converting the latest image into a .jpg, uploading it to
+     astrometry.net, recieving the plate solved response, and executing a tracking correction 
+     on the mount.
+     Inputs:
+            mountSerialPort
+              A serial.Serial object connected to the mount
+            
+            coordinates:
+              An astropy SkyCoord object
+            
+            astrometryAPI
+              An API key specified in settings.yaml, so that an owner of the unit
+              can see what images are being plate solved in real time from their 
+              dashboard on astrometry.net
+
+            abortOnFailedSolve (not yet implemented)
+              A bool that is used to determine what to do after an image comes back
+              with a 'failure' status from the astrometry.net API. Unsolvable images
+              are of no scientific value to project PANOTPES.
+    '''
+    if astrometryAPI in (None, 0, False):
+        logger.info("Skipping plate solving as directed by the PLATE_SOLVE setting.")
+        return
+    
+    import json
+    import random
+    import ssl # Need this for the moxa build, consider making into raspbian and moxa packages bc of security risks
+    
+    from urllib import request, parse
+
+    time.sleep(5) # Let camera module make observation folder
+
+    # Set mount guide rate to max value
+    if not mountSerialPort.is_open:
+        mountSerialPort.open()
+    mountSerialPort.write(b':RG9099')
+    _ = mountSerialPort.read(1)
+    logger.debug(f"Mount response to setting guiding rates: {_}")
+
+    # Confirm guiding rate took effect
+    mountSerialPort.write(b':AG#')
+    out = mountSerialPort.read(5).decode('utf-8')
+    RAGuideRate = float('0.' + out[0:1])  # 0.XX * sidereal, min rate = 0.01, max rate = 0.90
+    DECGuideRate = float('0.' + out[2:3]) # 0.XX * sidereal, min rate = 0.10, max rate = 0.99
+    logger.debug(f"Mount reported guiding rates: {RAGuideRate=}  {DECGuideRate=}")
+
+    # Find most recent observation directory
+    dates = []
+    format = "%Y-%m-%d_%H:%M:%S"
+    for fileName in os.listdir(f"{parentPath}/images"):
+        try:
+            dates.append(datetime.strptime(fileName, format))
+        except Exception:
+            pass
+
+    currentImageFolder = datetime.strftime(max(dates), format)
+    logger.debug(f"Found the most recent observation folder: {parentPath}/images/{currentImageFolder}")
+
+    previousRawImages = []
+    camerasObserving = True
+    while camerasObserving:
+
+        # Find the most recent image in the most recent observation folder, search for the first image until a timeout period of 5 minutes
+        logger.debug("Waiting for new raw images...")
+        timeout = time.time() + 60 * 5
+        waitForNewImage = True
+        while waitForNewImage:
+            rawImages = []
+            for dir, subdir, files in os.walk(f"{parentPath}/images/{currentImageFolder}"):
+                for file in files:
+                    if os.path.splitext(file)[1].lower() in ('.cr2', '.thumb.jpg'):
+                        rawImages.append(os.path.join(dir, file))
+
+            newRawImages = list(set(previousRawImages).symmetric_difference(set(rawImages)))
+            previousRawImages = rawImages
+
+            try:
+                rawImage = newRawImages[-1]
+                logger.debug("Found new raw images.")
+                break
+            except IndexError:
+                pass
+
+            if time.time() > timeout:
+                logger.warning("Plate-solve timeout reached waiting for new image from camera module. (System is hardcoded to wait 5minutes for an image after calling the camera module)")
+                return
+
+            time.sleep(1)
+
+
+        start = time.time()
+        logger.info("Correcting tracking by plate solving...")
+
+        # Convert newest .cr2 into a .jpg
+        os.system(f"dcraw -e {rawImage}")
+        logger.debug(f"Converted {rawImage} to .thumb.jpg")
+
+        logger.debug("Logging into astrometry.net through the API.")
+        data = parse.urlencode({'request-json': json.dumps({"apikey": astrometryAPI})}).encode()
+        loginRequest = request.Request('http://nova.astrometry.net/api/login', data=data)
+        response = json.loads(request.urlopen(loginRequest).read())
+
+        if response['status'] == "success":
+            logger.debug("Logged in successfully.")
+
+            session_id = response['session']
+            logger.debug(f"Session ID: {session_id}")
+
+            # File uploading, taken from astrometry.net's API documentation and github client
+            f = open(rawImage.replace(".cr2", ".thumb.jpg"), 'rb')
+            file_args = (rawImage.replace(".cr2", ".thumb.jpg"), f.read())
+
+            boundary_key = ''.join([random.choice('0123456789') for i in range(19)])
+            boundary = '===============%s==' % boundary_key
+            headers = {'Content-Type':
+                        'multipart/form-data; boundary="%s"' % boundary}
+            
+            data_pre = (
+                '--' + boundary + '\n' +
+                'Content-Type: text/plain\r\n' +
+                'MIME-Version: 1.0\r\n' +
+                'Content-disposition: form-data; name="request-json"\r\n' +
+                '\r\n' +
+                json.dumps({'session': session_id}) + '\n' +
+                '--' + boundary + '\n' +
+                'Content-Type: application/octet-stream\r\n' +
+                'MIME-Version: 1.0\r\n' +
+                'Content-disposition: form-data; name="file"; filename="%s"' % file_args[0] +
+                '\r\n' + '\r\n')
+            data_post = (
+                '\n' + '--' + boundary + '--\n')
+            data = data_pre.encode() + file_args[1] + data_post.encode()
+
+            fileUploadRequest = request.Request(url='http://nova.astrometry.net/api/upload', headers=headers, data=data)
+            response = json.loads(request.urlopen(fileUploadRequest).read())
+
+            submission_id = response['subid']
+            logger.info("Uploaded image to astrometry.net for plate solving.")
+            logger.debug(f"submission_id = {submission_id}")
+
+            logger.debug("Waiting for file to start being plate solved...")
+            timeout = time.time() + 60 * 5
+            waitForQue = True
+            while waitForQue:
+                time.sleep(1)
+
+                gcontext = ssl.SSLContext() # Again, needed on the moxa system
+
+                jobIDRequest = request.Request(url='https://nova.astrometry.net/api/submissions/' + str(submission_id))
+                response = json.loads(request.urlopen(jobIDRequest, context=gcontext).read())
+                logger.debug(f"jobIDRequest response: {response}")
+
+                try:
+                    jobID = response['jobs'][0]
+                    if jobID is not None:
+                        logger.debug("Plate solving started.")
+                        break
+                except IndexError:
+                    pass
+
+                if time.time() > timeout:
+                    logger.warning("Plate-solve timeout reached waiting for astronomy.net to begin plate solving image.")
+                    return
+
+            logger.debug("Waiting for astrometry.net to plate solve...")
+            timeout = time.time() + 60 * 10
+            waitForPlateSolve = True
+            while waitForPlateSolve:
+                plateSolveStatusRequest = request.Request(url='https://nova.astrometry.net/api/jobs/' + str(submission_id))
+                response = json.loads(request.urlopen(plateSolveStatusRequest, context=gcontext).read())
+
+                if response["status"] == "success":
+                    logger.info("Image has been successfully plate solved.")
+                    break
+                elif response["status"] == "failure":
+                    logger.warning("Unable to plate solve image.")
+                    if abortOnFailedSolve:
+                        # TODO: Decide and implement one of the following:
+                        #          1. Go to the next target
+                        #          2. Wait X minutes and try again (cloud cover, starlink satelite, whatever)
+                        #          3. Fully turn off the system
+                        pass
+                    return
+                elif time.time() > timeout:
+                    logger.warning("Plate-solve timeout reached waiting for astronomy.net to plate solve the image.")
+                    return
+                
+                time.sleep(1)
+            
+            timeout = time.time() + 60 * 10
+            waitForImageData = True
+            while waitForImageData:
+                time.sleep(1)
+                    
+                imageCoordinatesRequest = request.Request(url='https://nova.astrometry.net/api/jobs/' + str(jobID) + '/calibration')
+                response = json.loads(request.urlopen(imageCoordinatesRequest, context=gcontext).read())
+
+                try:
+                    RADecimal = response['ra']
+                    DECDecimal = response['dec']
+
+                    logger.debug(f"Plate solve coordinates: ra: {RADecimal} dec: {DECDecimal}")
+                    break
+                except KeyError as e:
+                    pass
+
+                if time.time() > timeout:
+                    logger.warning("Plate-solve timeout reached waiting for astronomy.net to publish image data.")
+                    return
+
+        else:
+            logger.warning("Problem logging into the astrometry.net API! Check your API key and internet connection.")
+
+        end = time.time()
+        logger.debug(f"Time spent calculating correction: {end - start}")
+
+        # Perform guiding - aka tracking correction
+        RACorrection = RADecimal - coordinates.ra.deg
+        DECCorrection = DECDecimal - coordinates.dec.deg
+
+        if RACorrection < 0:
+            RAGuidePre = ':ZQ'
+        elif RACorrection > 0:
+            RAGuidePre = ':ZS'
+
+        if DECCorrection > 0:
+            DECGuidePre = ':ZE'
+        elif DECCorrection < 0:
+            DECGuidePre = ':ZC'
+
+        # sidereal tracking rate = 15.041 arcseconds / second 
+        # sidereal tracking rate = 15.041 / 3600  degrees / second
+        # Guide rate = RADECGuideRate * 15.041 / 3600 degrees / second
+        # Guide rate = RADECGuideRate * 15.041 / (3600 * 1000) degrees / milliseconds
+
+        RAGuideTime = RACorrection / ((RAGuideRate) * 15.041 / 3600000)
+        DECGuideTime = DECCorrection / (DECGuideRate * 15.041 / 3600000)
+        logger.debug(f"Calculated guide times of: ra: {RAGuideTime}ms dec: {DECGuideTime}ms")
+
+        if not mountSerialPort.is_open:
+            mountSerialPort.open()
+
+        if RAGuideTime > 100:
+            if RAGuideTime > 99999:
+                cmdRAData = str(99999)
+            else:
+                RAGuideTime = str(round(abs(RAGuideTime)))
+                cmdRAData = "0" * (5 - len(RAGuideTime)) + RAGuideTime
+
+            RAcmd = RAGuidePre + cmdRAData + '#'
+            mountSerialPort.write(bytes(RAcmd))
+            logger.debug(f"Sent the RA guide command {RAcmd} to the mount.")
+
+        if DECGuideTime > 100:
+            if DECGuideTime > 99999:
+                cmdDECData = str(99999)
+            else:
+                DECGuideTime = str(round(abs(DECGuideTime)))
+                cmdDECData = "0" * (5 - len(DECGuideTime)) + DECGuideTime
+
+            DECcmd = DECGuidePre + cmdDECData + '#'
+            mountSerialPort.write(bytes(DECcmd))
+            logger.debug(f"Sent the DEC guide command {DECcmd} to the mount")
+
+        logger.info("Succesfully executed necessary tracking corrections.")
+        time.sleep(100)
 
 def main():
 
@@ -252,6 +550,8 @@ def main():
     LON_CONFIG = settings['LONGITUDE']
     ELEVATION_CONFIG = settings['ELEVATION']
     UNIT_LOCATION = EarthLocation(lat=LAT_CONFIG, lon=LON_CONFIG, height=ELEVATION_CONFIG * u.m)
+    ASTROMETRY_API = settings['PLATE_SOLVE']
+    ABORT_FAILED_SOLVE_ATTEMPT = settings['ABORT_AFTER_FAILED_SOLVE']
 
     mount_port = connect_to_mount()
 
@@ -271,13 +571,22 @@ def main():
             case 'slew to target':
                 print("System attempting to slew to target...")
                 logger.info("Getting ready to slew to target.")
+
                 mount_port.write(b':MP0#') # command has no effect if already unparked
                 _ = mount_port.read()
                 logger.debug(f"Result of unpark command: {_}")
-                slewToTarget(SkyCoord(current_target.position['ra'], current_target.position['dec'], unit=(u.hourangle, u.deg)), mount_port)
+
+                coordinates = SkyCoord(current_target.position['ra'], current_target.position['dec'], unit=(u.hourangle, u.deg))
+                slewToTarget(coordinates, mount_port)
                 sendTargetObjectCommand(current_target, 'take images')
                 os.system(f'python3 {parentPath}/cameras/camera_control.py')
                 logger.info("Started the camera module.")
+
+                try:
+                    guideThread = threading.Thread(target=correctTracking, args=(mount_port, coordinates, ASTROMETRY_API, ABORT_FAILED_SOLVE_ATTEMPT), daemon=True)
+                    guideThread.start()
+                except Exception as e:
+                    logger.error("Encountered an error while trying to guide the mount", e)
 
             case 'park':
                 print("Parking the mount.")
