@@ -19,6 +19,12 @@ def main(args):
     if args.set_logging_level:
         settings["DEBUG_MESSAGE_LEVEL"] = args.set_logging_level[0]
 
+    if args.plate_solve:
+        settings['PLATE_SOLVE'] = args.plate_solve[0]
+
+    if args.abort_after_failure_to_plate_solve:
+        settings['ABORT_AFTER_FAILED_SOLVE'] = args.abort_after_failure_to_plate_solve[0]
+
     if args.show:
         print("---------------   Current system settings   ---------------")
         for key in settings.keys():
@@ -63,6 +69,19 @@ if __name__ == "__main__":
     ''')
     parser.add_argument('--show', '-ls', action='store_true',
                         help='''List the current settings.''')
+    parser.add_argument('--plate_solve', '-solve', action='store', nargs=1, metavar='<nova.astrometry.net API key>',
+                        help ='''\
+    Set a nova.astrometry.net API key to use for plate solving. Leaving this blank, or setting it to False, None, or
+    0 will skip the plate solving process. Be sure to keep your API key private. You can also use nova.astrometry.net
+    to monitor your unit remotely and see some of its most recent images that are being used for plate solving.
+    ''')
+    parser.add_argument('--abort_after_failure_to_plate_solve', '-solve_abort_behavior', action='store', nargs=1, choices=["True", "False"],
+                        help='''\
+    Set to False (default) to continue observing after an image has failed to be plate solved. If an image can't be
+    plate solved, it is of little to no scientific value. Set to True to have the unit skip to the next target in
+    the queue. WORK IN PROGRESS, CURRENTLY NON-FUNCTIONAL, SYSTEM WILL CONTINUE TO OBSERVE AFTER FAILED PLATE SOLVE
+    NO MATTER WHAT THIS IS SET TO.
+    ''')
 
     args = parser.parse_args()
     main(args)
