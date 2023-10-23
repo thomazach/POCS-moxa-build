@@ -76,7 +76,7 @@ def initialize_observation(current_target_object):
 
     logger.info("Initializing camera processes for the observation.")
 
-    format = "%Y-%m-%dT%H:%M:%S"
+    format = "%Y-%m-%d %H:%M:%S"
     timezone = datetime.timezone.utc
     time_and_date = datetime.datetime.now(tz=timezone).strftime(format)
 
