@@ -5,3 +5,5 @@ LONGITUDE: '-118.125'
 TARGET_FILE: test_fields.yaml
 PLATE_SOLVE: None
 ABORT_AFTER_FAILED_SOLVE: False
+SIMULATORS:
+- 'power'
