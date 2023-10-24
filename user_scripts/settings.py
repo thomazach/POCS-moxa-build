@@ -26,7 +26,7 @@ def main(args):
         settings['ABORT_AFTER_FAILED_SOLVE'] = args.abort_after_failure_to_plate_solve[0]
 
     if args.simulators:
-        settings['SIMULATORS'] = args.simulators[0]
+        settings['SIMULATORS'] = args.simulators
 
     if args.show:
         print("---------------   Current system settings   ---------------")
@@ -93,6 +93,10 @@ if __name__ == "__main__":
     You may use multiple simulators by typing the name of one, followed by a space, and then another. 
     Example: 
                         >> settings --simulators night weather power
+
+    To remove all simulators:
+
+                        >> settings --simulators ""
     ''')
 
     args = parser.parse_args()
