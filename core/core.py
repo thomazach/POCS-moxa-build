@@ -324,7 +324,7 @@ def main():
         
         if systemInfo['desired_state'] == 'on' and systemInfo['state'] == 'off':
             logger.debug("Graceful on/off switch turning on.")
-            loop = threading.Thread(target=POCSMainLoop, args=[UNIT_LOCATION, TARGETS_FILE_PATH, settings]).start()
+            loop = threading.Thread(target=POCSMainLoop, args=[UNIT_LOCATION, TARGETS_FILE_PATH, settings], daemon=True).start()
             systemInfo['state'] = 'on'
             with open(f"{PARENT_DIRECTORY}/pickle/system_info.pickle", "wb") as f:
                 pickle.dump(systemInfo, f)
