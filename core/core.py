@@ -178,6 +178,35 @@ def checkTargetAvailability(position, unitLocation):
             return False
     return True
 
+def park():
+    '''
+    Park the mount and wait to recieve the 'parked' status to confirm the mount is done moving.
+
+    Output:
+        bool
+            Returns True if the 'parked' status is recieved from the mount module, False if
+            the 5 minute timeout is reached.
+    '''
+    logger.info("Parking the mount.")
+    target.cmd = 'park'
+    with open(f"{PARENT_DIRECTORY}/pickle/current_target.pickle", "wb") as pickleFile:
+        pickle.dump(target, pickleFile)
+    logger.debug("Sent park command to current_target.pickle")
+
+    timeout = time.time() + 3 * 60
+    while timeout > time.time():
+        with open(f"{PARENT_DIRECTORY}/pickle/current_target.pickle", "rb") as pickleFile:
+            target = pickle.load(pickleFile)
+
+        if target.cmd == 'parked':
+            logger.info("Mount parked.")
+            return True
+
+        time.sleep(1)
+    
+    logger.critical("Mount failed to parked before 5 minute timeout.")
+    return False
+
 def POCSMainLoop(UNIT_LOCATION, TARGETS_FILE_PATH, settings):
     # The bread and butter of core. Responsible for sending commands to mount and
     # deciding what to observe. Its a function so that it can be threaded. This allows
@@ -221,26 +250,10 @@ def POCSMainLoop(UNIT_LOCATION, TARGETS_FILE_PATH, settings):
                         target = pickle.load(f)
                     logger.debug(f"Read current_target.pickle and recieved this target: {target}")
 
-                    # TODO: Make at least part of this into a function for readability
-                    # This block of code parks the mount in the event that a safety condition
-                    # is not met, and waits for the mount to park before breaking out of the nested
-                    # loops all the way up to the while doRun loop, at which point the unit will wait
-                    # for the safety conditions to come back before observing again
                     isSafe = getSafetyStatus(WEATHER_RESULTS_TXT,  UNIT_LOCATION, settings['SIMULATORS'])
                     if not isSafe:
-                        target.cmd = 'park'
-                        with open(f"{PARENT_DIRECTORY}/pickle/current_target.pickle", "wb") as pickleFile:
-                            pickle.dump(target, pickleFile)
 
-                        timeout = time.time() + 3 * 60
-                        while timeout > time.time():
-                            with open(f"{PARENT_DIRECTORY}/pickle/current_target.pickle", "rb") as pickleFile:
-                                target = pickle.load(pickleFile)
-
-                            if target.cmd == 'parked':
-                                break
-
-                            time.sleep(1)
+                        park()
                         
                         target_queue = []
                         break
@@ -314,10 +327,7 @@ def main():
             doRun = False
 
             if (target is not None) and (target.cmd != 'parked'):
-                target.cmd = 'park'
-                with open(f"{PARENT_DIRECTORY}/pickle/current_target.pickle", "wb") as pickleFile:
-                        pickle.dump(target, pickleFile)
-                logger.debug("Mount is not in the parked position, park request sent to current_target.pickle")
+                park()
                 
             systemInfo['state'] = 'off'
             break
