@@ -1,6 +1,6 @@
 cem40:
-- /home/moxa/POCS-moxa-build/packages/CEM40/PackageInfo/README.md
-- /home/moxa/POCS-moxa-build/packages/CEM40/PackageInfo/LICENSE
-- /home/moxa/POCS-moxa-build/packages/CEM40/PackageInfo
-- /home/moxa/POCS-moxa-build/mount/mount_control.py
-- /home/moxa/POCS-moxa-build/packages/CEM40
+- /packages/CEM40/PackageInfo/README.md
+- /packages/CEM40/PackageInfo/LICENSE
+- /packages/CEM40/PackageInfo
+- /mount/mount_control.py
+- /packages/CEM40

@@ -66,28 +66,18 @@ def main(args):
                         packagePath = "~/Moxa-POCS-Fundamental-Packages-CEM40-Package-v1.1.0"
                         logger.info(f"Set package path to: {packagePath}")
 
-                    #case "panoptes3d":
-                    #    logger.debug("Found install case: panoptes3d")
-                    #    # download tar ball
-                    #    logger.info("Unpacking tar file.")
-                    #    os.system("cd ~; tar -xzf panoptes_package.tar.gz; rm panoptes_package.tar.gz")
-                    #    packagePath = "~/panoptes_package"
-                    #case "panoptes3d-vr":
-                    #    packagePath = "~/panoptespackage"    
-
                     case _:
                         print(bcolors.FAIL + "Invalid package name." + bcolors.ENDC)
                         return
-            
+
             logger.debug("Checking package compatibility...")
             out = subprocess.run(f"cd {packagePath}; find . -type b,c,p,f,l,s", shell=True, stdout=subprocess.PIPE)
             out = out.stdout.decode('utf-8').split("\n")
             for file in out[1:]:
-                file = file.replace("./", "")
+                file = file.replace(".", "", 1)
                 if not "git" in file:
                     for package in allPackages:
                         for paths in allPackages[package]:
-                            paths = paths[paths.find("POCS-moxa-build/") + 16:] # Only use paths in the parent directory, not absolute paths
                             if paths == file:
                                 logger.error(f"The specified package {packageName} is incompatible since it's trying to use a file location already claimed by the system or other packages: POCS-moxa-build/{paths}") 
                                 print(f"""{bcolors.FAIL}
@@ -114,6 +104,7 @@ If this error has been caused by non-hardware modules, two developers have place
 
             out = out.stdout.decode('utf-8').replace(" ", "")
             out = out.replace("'", "")
+            out = out.replace(PARENT_DIR, "")
 
             startIndex = None
             filePaths = []
@@ -157,8 +148,8 @@ If this error has been caused by non-hardware modules, two developers have place
             return
         
         for file in filesToRemove:
-            logger.debug(f"Removed: {file}")
-            subprocess.run(["rm", "-d", file])
+            logger.debug(f"Removed: {PARENT_DIR}/{file}")
+            subprocess.run(["rm", "-d", PARENT_DIR + '/' + file])
         
         if not isUpdate:
             print(f"{bcolors.OKGREEN}Removed {packageName}!{bcolors.ENDC}")
