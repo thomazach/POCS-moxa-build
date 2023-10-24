@@ -77,6 +77,10 @@ def serialize_commands(readable_command: str):
         case "read_weather" | "get_weather" | "read_weather_sensor" | "get_weather_sensor":
             logger.debug(f"Arduino serial command: {f'<3>'.encode('utf-8')}")
             return f'<3>'.encode("utf-8")
+        
+        case "get_power_status":
+            logger.debug(f"Arduino serial command: {f'<4>.'.encode('utf-8')}")
+            return f'<4>.'.encode('utf-8')
 
 def listen(port):
     # Function listens for a response from the arduino and returns the requested data or the completion character
@@ -94,11 +98,13 @@ def listen(port):
             return response
         elif output == "#":
             logger.info("Recieved successful command execution character from the Arduino.")
-            return bcolors.OKGREEN + "\nExecuted Command Successfully" + bcolors.ENDC
+            return bcolors.OKGREEN + "\nExecuted Arduino Command Successfully" + bcolors.ENDC
         elif output == "r":
             print(bcolors.OKGREEN + "\nArduino setup complete. Ready for commands." + bcolors.ENDC)
             logger.info("Succesfully connected and initialized the Arduino.")
             return True
+        else:
+            return output
         
     elif output.count("|") != 0 and output.count("|") != 2:
         logger.error("Arduino serial communication error. Expected command response within two '|' characters. ")
@@ -127,6 +133,7 @@ def main():
             if commandDict['cmd'].lower() == "off" and commandDict['execute'] == True:
                 logger.info(f"Turning off the arduino service.")
                 commandDict['execute'] = False
+                commandDict['monitoring_power'] = False
                 with open(pickleFilePath, "wb") as f:
                     pickle.dump(commandDict, f)
                 On = False
