@@ -188,11 +188,18 @@ def park():
             the 5 minute timeout is reached.
     '''
     logger.info("Parking the mount.")
+
+    with open(f"{PARENT_DIRECTORY}/pickle/current_target.pickle", "rb") as pickleFile:
+        target = pickle.load(pickleFile)
+    logger.debug("Park: Updated target instance")
+
+    # Send the actual park command to the mount module through the pickle file
     target.cmd = 'park'
     with open(f"{PARENT_DIRECTORY}/pickle/current_target.pickle", "wb") as pickleFile:
         pickle.dump(target, pickleFile)
     logger.debug("Sent park command to current_target.pickle")
 
+    # Wait for park confirmation from mount module
     timeout = time.time() + 3 * 60
     while timeout > time.time():
         with open(f"{PARENT_DIRECTORY}/pickle/current_target.pickle", "rb") as pickleFile:
@@ -204,7 +211,7 @@ def park():
 
         time.sleep(1)
     
-    logger.critical("Mount failed to parked before 5 minute timeout.")
+    logger.critical("Mount failed to parked before 3 minute timeout.")
     return False
 
 def POCSMainLoop(UNIT_LOCATION, TARGETS_FILE_PATH, settings):
