@@ -95,6 +95,7 @@ def getSafetyStatus(weatherResultsPath, unitLocation, simulators):
             Represents wether it is safe to try to observe. True if safe, False if dangerous
     '''
     logger.info("Checking safety conditions...")
+    logger.info(f"Overiding safety checks for the following simulators: {simulators}")
 
     safetyFunctionInfo = [{'funcHandle': getWeatherStatus, 'args': [weatherResultsPath], 'simulatorName': 'weather'},
                              {'funcHandle': astronomicalNight, 'args': [unitLocation], 'simulatorName': 'night'},
