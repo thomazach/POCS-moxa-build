@@ -25,6 +25,9 @@ def main(args):
     if args.abort_after_failure_to_plate_solve:
         settings['ABORT_AFTER_FAILED_SOLVE'] = args.abort_after_failure_to_plate_solve[0]
 
+    if args.simulators:
+        settings['SIMULATORS'] = args.simulators[0]
+
     if args.show:
         print("---------------   Current system settings   ---------------")
         for key in settings.keys():
@@ -81,6 +84,15 @@ if __name__ == "__main__":
     plate solved, it is of little to no scientific value. Set to True to have the unit skip to the next target in
     the queue. WORK IN PROGRESS, CURRENTLY NON-FUNCTIONAL, SYSTEM WILL CONTINUE TO OBSERVE AFTER FAILED PLATE SOLVE
     NO MATTER WHAT THIS IS SET TO.
+    ''')
+
+    parser.add_argument('--simulators', '-sim', action='store', nargs='+', metavar='<simulator 1> <simulator2> <simulator3>',
+                        help='''\
+    Set which simulators you would like to use to bypass safety settings. Bypassing these settings is useful for
+    testing but is discouraged in an actual deployment. Possible simulator names are: "night", "weather", or "power".
+    You may use multiple simulators by typing the name of one, followed by a space, and then another. 
+    Example: 
+                        >> settings --simulators night weather power
     ''')
 
     args = parser.parse_args()
