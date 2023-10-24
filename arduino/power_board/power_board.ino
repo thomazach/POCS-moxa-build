@@ -139,6 +139,9 @@ void execute_command(){
   else if (switchCmd == 2){
     sendCurrentData();
   }
+  else if (switchCmd == 4){
+    sendPowerBool();
+  }
 }
 
 // Command functions
@@ -179,4 +182,12 @@ void sendCurrentData(){
   Serial.print("|");
   Serial.println();
 
+}
+
+void sendPowerBool(){
+  bool has_power = !digitalRead(AC_OK);
+  Serial.print("|");
+  Serial.print(has_power);
+  Serial.print("|");
+  Serial.println();
 }
