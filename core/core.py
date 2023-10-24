@@ -35,7 +35,84 @@ def readWeatherResults(PATH):
     weather_results_file_object = open(PATH, 'r')
     weather_results = weather_results_file_object.readline()
     weather_results_file_object.close()
+
     return weather_results
+
+def getWeatherStatus(PATH):
+    _writeToFile(PATH, 'go')
+    _writeToFile(PATH, 'true') # Temporarily need to bypass weather module until panoptes team figures out solution for weather sensor
+    # Would call weather module here, but ^ 
+    time.sleep(1)
+    weather_results = readWeatherResults(PATH)
+
+    if weather_results == 'true':
+        return True
+    
+    logger.info("Weather safety conditions not met.")
+    return False
+
+def getPowerStatus():
+
+    POWER_PICKLE_PATH = f"{PARENT_DIRECTORY}/pickle/arduino_cmd.pickle" 
+    with open(POWER_PICKLE_PATH, "rb") as f:
+        powerInfo = pickle.load(f)
+
+    if bool(powerInfo['monitoring_power']) == False:
+        subprocess.Popen(['python3', f'{PARENT_DIRECTORY}/arduino/arduino.py']) # TODO: Change arduino module name to power module along with arduino.py to power.py
+        powerInfo['monitoring_power'] = True
+        with open(POWER_PICKLE_PATH, "wb") as f:
+            pickle.dump(powerInfo, f)
+        time.sleep(15)
+    
+    powerInfo['cmd'] = 'get_power_status'
+    with open(POWER_PICKLE_PATH, 'wb') as f:
+        pickle.dump(powerInfo, f)
+
+    waitForResponse = True
+    while waitForResponse:
+        time.sleep(1)
+        with open(POWER_PICKLE_PATH, 'rb') as f:
+            powerInfo = pickle.load(f)
+        
+        if powerInfo['response'] != 'waiting for response':
+            waitForResponse = False
+            return bool(powerInfo['response'])
+
+def getSafetyStatus(weatherResultsPath, unitLocation, simulators):
+    '''
+    Inputs:
+        weatherResultsPath - string
+            Path to the weather results file
+        
+        unitLocation - astropy.coordinates.EarthLocation object
+            Location of the unit as represented by astropy
+
+        simulators - optional list
+            List of strings that are keywords to disable certain safety checks. This is designed to aid users in testing.
+
+    Outputs:
+        isSafe - bool
+            Represents wether it is safe to try to observe. True if safe, False if dangerous
+    '''
+    logger.info("Checking safety conditions...")
+
+    safetyFunctionInfo = [{'funcHandle': getWeatherStatus, 'args': [weatherResultsPath], 'simulatorName': 'weather'},
+                             {'funcHandle': astronomicalNight, 'args': [unitLocation], 'simulatorName': 'night'},
+                             {'funcHandle': getPowerStatus, 'args': [], 'simulatorName': 'power'}]
+    
+    safetyFunctions = []
+    for info in safetyFunctionInfo:
+        if info['simulatorName'] in simulators:
+            continue
+
+        safetyFunctions.append((info['funcHandle'], info['args'])) 
+
+    for func, args in safetyFunctions:
+        if not func(*args):
+            return False
+    
+    logger.info("Safety conditions met.")
+    return True
 
 def convertRaDecToAltAZ(skyCoord, location):
     observationTime = Time(datetime.now(timezone.utc))
@@ -51,7 +128,7 @@ def astronomicalNight(unitLocation):
         return True
 
     print(bcolors.OKCYAN + "It isn't astronomical night yet." + bcolors.ENDC)
-    logger.info(f"It isn't astronomical night, the sun must be 18 degrees below the horizon, current altitude: {sunAltAz.alt.deg}")
+    logger.info(f"Astronomical night safety condition not met, the sun must be 18 degrees below the horizon, current altitude: {sunAltAz.alt.deg}")
     return False
 
 def aboveHorizon(targetSkyCoord, unitLocation):
@@ -113,15 +190,10 @@ def POCSMainLoop(UNIT_LOCATION, TARGETS_FILE_PATH, settings):
 
     while doRun:
 
-        _writeToFile(WEATHER_RESULTS_TXT, 'go')
-        _writeToFile(WEATHER_RESULTS_TXT, 'true') # Temporarily need to bypass weather module until panoptes team figures out solution for weather sensor
-        
-        time.sleep(3)
-        weather_results = readWeatherResults(WEATHER_RESULTS_TXT)
-        isNight = astronomicalNight(UNIT_LOCATION)
+        isSafe = getSafetyStatus(WEATHER_RESULTS_TXT, UNIT_LOCATION, settings['SIMULATORS'])
 
-        if weather_results == 'true' and isNight == True:
-            logger.info(f"Conditions check passed.")
+        if isSafe:
+            logger.info(f"Condition checks passed.")
             print(f"{bcolors.OKGREEN}Starting observation using schedule file: {bcolors.OKCYAN}{settings['TARGET_FILE']}{bcolors.ENDC}")
             logger.info(f"Starting observation using schedule file: {settings['TARGET_FILE']}.")
             target_queue = obs_scheduler.getTargetQueue(TARGETS_FILE_PATH)
@@ -148,7 +220,31 @@ def POCSMainLoop(UNIT_LOCATION, TARGETS_FILE_PATH, settings):
                     with open(f"{PARENT_DIRECTORY}/pickle/current_target.pickle", "rb") as f:
                         target = pickle.load(f)
                     logger.debug(f"Read current_target.pickle and recieved this target: {target}")
-                    # TODO: Add safety feature for weather checking & astronomical night checking
+
+                    # TODO: Make at least part of this into a function for readability
+                    # This block of code parks the mount in the event that a safety condition
+                    # is not met, and waits for the mount to park before breaking out of the nested
+                    # loops all the way up to the while doRun loop, at which point the unit will wait
+                    # for the safety conditions to come back before observing again
+                    isSafe = getSafetyStatus(WEATHER_RESULTS_TXT,  UNIT_LOCATION, settings['SIMULATORS'])
+                    if not isSafe:
+                        target.cmd = 'park'
+                        with open(f"{PARENT_DIRECTORY}/pickle/current_target.pickle", "wb") as pickleFile:
+                            pickle.dump(target, pickleFile)
+
+                        timeout = time.time() + 3 * 60
+                        while timeout > time.time():
+                            with open(f"{PARENT_DIRECTORY}/pickle/current_target.pickle", "rb") as pickleFile:
+                                target = pickle.load(pickleFile)
+
+                            if target.cmd == 'parked':
+                                break
+
+                            time.sleep(1)
+                        
+                        target_queue = []
+                        break
+                    
                     # TODO: Add safety feature that sends the mount the emergency park command if this loop has ran 10+ min longer than expected observation time
 
                     if (target.cmd == 'parked') and (doRun == True):
@@ -211,7 +307,7 @@ def main():
             logger.debug(f"Wrote to system_info.pickle with values: {systemInfo}")
 
         if systemInfo['desired_state'] == 'off' and systemInfo['state'] == 'on':
-            logger.debug("Graceful on/off switch turning off.")
+            logger.debug("Core turning off gracefully.")
             global doRun
             global target
 
