@@ -68,15 +68,18 @@ def getPowerStatus():
     with open(POWER_PICKLE_PATH, 'wb') as f:
         pickle.dump(powerInfo, f)
 
-    waitForResponse = True
-    while waitForResponse:
+    timeout = time.time() + 30
+    while timeout > time.time():
         time.sleep(1)
         with open(POWER_PICKLE_PATH, 'rb') as f:
             powerInfo = pickle.load(f)
         
         if powerInfo['response'] != 'waiting for response':
-            waitForResponse = False
+            logger.debug(f"Power safety bool: {powerInfo['response']}")
             return bool(powerInfo['response'])
+
+    logger.critical("Timeout reached while waiting for power status from arduino. Can't confirm that AC power is on.")
+    return False
 
 def getSafetyStatus(weatherResultsPath, unitLocation, simulators):
     '''
