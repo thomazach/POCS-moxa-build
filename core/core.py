@@ -348,7 +348,9 @@ def main():
             powerInfo['cmd'] = 'off'
             powerInfo['execute'] = True
             powerInfo['response'] = "waiting for response"
-            
+
+            with open(f"{PARENT_DIRECTORY}/pickle/arduino_cmd.pickle", "wb") as f:
+                pickle.dump(powerInfo, f)
                 
             systemInfo['state'] = 'off'
             break
