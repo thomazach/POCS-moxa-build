@@ -138,7 +138,7 @@ def astronomicalNight(unitLocation):
 def aboveHorizon(targetSkyCoord, unitLocation):
     targetAltAz = convertRaDecToAltAZ(targetSkyCoord, unitLocation)
     
-    if float(targetAltAz.alt.deg) < 0:
+    if float(targetAltAz.alt.deg) < 30:
         print(bcolors.OKCYAN + "Target is below the horizon." + bcolors.ENDC)
         logger.info("Target is below the horizon.")
         return False
