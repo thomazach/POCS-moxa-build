@@ -232,7 +232,7 @@ if __name__ == "__main__":
     will be the keyword used to manage the package. 
     Example:
                         >> package --install custom_package_name --from_directory /path/to/package
-                        >> package --upgrade custom_package_name --from_directory /path/to/package
+                        >> package --update custom_package_name --from_directory /path/to/package
     WARNING:
     NAME should not be the same as any panoptes standard package name, 
     otherwise the standard package(s) with shared names can not be installed, and will be met with an unclear error message:
