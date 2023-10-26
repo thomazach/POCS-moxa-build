@@ -338,8 +338,17 @@ def main():
 
             doRun = False
 
+            # Park mount if needed
             if (target is not None) and (target.cmd != 'parked'):
                 park()
+
+            # Gracefully turn off the arduino listener
+            with open(f"{PARENT_DIRECTORY}/pickle/arduino_cmd.pickle", "rb") as f:
+                powerInfo = pickle.load(f)
+            powerInfo['cmd'] = 'off'
+            powerInfo['execute'] = True
+            powerInfo['response'] = "waiting for response"
+            
                 
             systemInfo['state'] = 'off'
             break
