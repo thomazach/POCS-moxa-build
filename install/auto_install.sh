@@ -52,3 +52,12 @@ done
 
 echo "                 -------- Installing moxa-POCS --------"
 git clone --branch develop https://github.com/thomazach/POCS-moxa-build.git
+
+# Prompt user for critical settings
+echo "Enter critical system settings. Do not include units, responses should exclusively be numbers."
+read -p "Enter your latitude: " latitude
+read -p "Enter your longitude: " longitude
+read -p "Enter your elevation in meters: " elevation
+
+# Set the values in settings.yaml
+python3 ~/POCS-moxa-build/user_scripts/settings.py --latitude $latitude --longitude $longitude --elevation $elevation
