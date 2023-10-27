@@ -61,3 +61,21 @@ read -p "Enter your elevation in meters: " elevation
 
 # Set the values in settings.yaml
 python3 ~/POCS-moxa-build/user_scripts/settings.py --latitude $latitude --longitude $longitude --elevation $elevation
+
+# Auto-upload power_board.ino to the arduino uno
+while true; do
+    read -p "Upload arduino sketch?: [y/n] " user_input
+
+    if [ "$user_input" == "n" ]; then
+        break
+    elif [ "$user_input" == "y" ]; then
+        echo "                 -------- Uploading Arduino Script --------"
+        arduino-cli core update-index
+        arduino-cli core install arduino:avr
+        arduino-cli compile -b arduino:avr:uno ~/POCS-moxa-build/arduino/power_board
+        arduino-cli upload -p /dev/ttyACM0 -b ~/POCS-moxa-build/arduino/power_board
+        break
+    else
+        echo "Invalid input. Please enter 'y' or 'n'."
+    fi
+done
