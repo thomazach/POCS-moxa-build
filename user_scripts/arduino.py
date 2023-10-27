@@ -4,6 +4,11 @@ def main(args):
     
     parentDir = os.path.dirname(__file__).replace('/user_scripts', '')
 
+    def read():
+        with open(f"{parentDir}/pickle/arduino_cmd.pickle", "rb") as f:
+            currentPickle = pickle.load(f)
+        return currentPickle
+
     def writeRead(cmd):
         with open(f"{parentDir}/pickle/arduino_cmd.pickle", "wb") as f:
             pickle.dump(cmd, f)
@@ -21,9 +26,14 @@ def main(args):
         except Exception as error:
             print(bcolors.FAIL + "=ERROR=", error)
             print(bcolors.ENDC, end='')
+        return
+
+    cmd = read()
+    cmd['execute'] = True
+    cmd['response'] = "waiting for response"
 
     if args.off:
-        cmd = {'cmd': "off", 'execute': True, 'response': "waiting for response"}
+        cmd['cmd'] = "off"
         writeRead(cmd)
         print(bcolors.OKGREEN + "Arduino listener shut down." + bcolors.ENDC)
     
@@ -31,27 +41,30 @@ def main(args):
         print(bcolors.YELLOW + "=WARN= read_weather hasn't been implemented yet." + bcolors.ENDC)
     
     if args.cameras:
-        cmd = {'cmd': f"cameras {args.cameras}", 'execute': True, 'response': "waiting for response"}
+        cmd['cmd'] = f"cameras {args.cameras}"
         writeRead(cmd)
     
     if args.mount:
-        cmd = {'cmd': f"mount {args.mount}", 'execute': True, 'response': "waiting for response"}
+        cmd['cmd'] = f"mount {args.mount}"
         writeRead(cmd)
     
     if args.fan:
-        cmd = {'cmd': f"fan {args.fan}", 'execute': True, 'response': "waiting for response"}
+        cmd['cmd'] = f"fan {args.fan}"
         writeRead(cmd)
 
     if args.weather_station:
-        cmd = {'cmd': f"weather {args.weather_station}", 'execute': True, 'response': "waiting for response"}
+        cmd['cmd'] = f"weather {args.weather_station}"
         writeRead(cmd)
     
     if args.unassigned:
-        cmd = {'cmd': f"unassigned {args.unassigned}", 'execute': True, 'response': "waiting for response"}
+        cmd['cmd'] = f"unassigned {args.unassigned}"
         writeRead(cmd)
 
     if args.current:
-        cmd = {'cmd': f"current", 'execute': True, 'response': "waiting for response"}
+        cmd['cmd'] = "current"
+        writeRead(cmd)
+    if args.ac_power_connected:
+        cmd['cmd'] = 'get_power_status'
         writeRead(cmd)
 
 if __name__ == "__main__":
@@ -105,6 +118,9 @@ https://www.youtube.com/watch?v=Uq_ytlCmLIw
     arduino_cmds.add_argument('--current', '-c', required=False, action='store_true', help='''\
 Measure the current on each arduino relay and print the results.
                               
+''')
+    arduino_cmds.add_argument('--ac_power_connected', '-ac_ok', required=False, action='store_true', help='''\
+Return the connection status of AC mains. True for connected, False for disconnected.
 ''')
 
     args = parser.parse_args()

@@ -138,7 +138,7 @@ def astronomicalNight(unitLocation):
 def aboveHorizon(targetSkyCoord, unitLocation):
     targetAltAz = convertRaDecToAltAZ(targetSkyCoord, unitLocation)
     
-    if float(targetAltAz.alt.deg) < 0:
+    if float(targetAltAz.alt.deg) < 30:
         print(bcolors.OKCYAN + "Target is below the horizon." + bcolors.ENDC)
         logger.info("Target is below the horizon.")
         return False
@@ -251,6 +251,7 @@ def POCSMainLoop(UNIT_LOCATION, TARGETS_FILE_PATH, settings):
                     pickle.dump(target, pickleFile)
                 logger.debug(f"Wrote to current_target.pickle, with target: {target}")
 
+                time.sleep(5)
                 subprocess.Popen(['python3', f'{PARENT_DIRECTORY}/mount/mount_control.py'])
                 logger.info("Called the mount module.")
 
@@ -337,8 +338,19 @@ def main():
 
             doRun = False
 
+            # Park mount if needed
             if (target is not None) and (target.cmd != 'parked'):
                 park()
+
+            # Gracefully turn off the arduino listener
+            with open(f"{PARENT_DIRECTORY}/pickle/arduino_cmd.pickle", "rb") as f:
+                powerInfo = pickle.load(f)
+            powerInfo['cmd'] = 'off'
+            powerInfo['execute'] = True
+            powerInfo['response'] = "waiting for response"
+
+            with open(f"{PARENT_DIRECTORY}/pickle/arduino_cmd.pickle", "wb") as f:
+                pickle.dump(powerInfo, f)
                 
             systemInfo['state'] = 'off'
             break
