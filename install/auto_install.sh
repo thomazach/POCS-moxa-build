@@ -55,8 +55,8 @@ git clone --branch develop https://github.com/thomazach/POCS-moxa-build.git
 
 # Prompt user for critical settings
 echo "Enter critical system settings. Do not include units, responses should exclusively be numbers."
-read -p "Enter your latitude: " latitude
-read -p "Enter your longitude: " longitude
+read -p "Enter your latitude in decimal degrees: " latitude
+read -p "Enter your longitude in decimal degrees: " longitude
 read -p "Enter your elevation in meters: " elevation
 
 # Set the values in settings.yaml
