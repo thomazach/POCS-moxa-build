@@ -247,6 +247,13 @@ def slewToTarget(coordinates, mountSerialPort=None):
     logger.debug(f"Result of sending the slew command: {_}")
     time.sleep(30)
 
+    if _ == b"0":
+        return False
+
+    elif _ == b"1":
+        time.sleep(30)
+        return True
+
 def park(mountSerialPort, location):
     '''
     Parks the mount from any position. Works by converting the alt-az coordinates that represent
@@ -266,6 +273,8 @@ def park(mountSerialPort, location):
         mountSerialPort.open()
 
     park_slewToTarget(parkPosition, mountSerialPort)
+
+    logger.info("Done parking the mount.")
 
 def correctTracking(mountSerialPort, coordinates, astrometryAPI, abortOnFailedSolve):
     '''
@@ -289,7 +298,7 @@ def correctTracking(mountSerialPort, coordinates, astrometryAPI, abortOnFailedSo
               with a 'failure' status from the astrometry.net API. Unsolvable images
               are of no scientific value to project PANOTPES.
     '''
-    if astrometryAPI in (None, 0, False):
+    if astrometryAPI in (None, "None", 0, False):
         logger.info("Skipping plate solving as directed by the PLATE_SOLVE setting.")
         return
     
@@ -299,38 +308,42 @@ def correctTracking(mountSerialPort, coordinates, astrometryAPI, abortOnFailedSo
     
     from urllib import request, parse
 
-    time.sleep(5) # Let camera module make observation folder
+    def setTrackingSettings():
+        '''
+        Sets mount guiding to maximum speed and returns what the mount actually says its guiding rate is for redundancy.
+        Output:
+            RAGuideRate, DECGuideRate
+        '''
+        # Set mount guide rate to max value
+        if not mountSerialPort.is_open:
+            mountSerialPort.open()
+        mountSerialPort.write(b':RG9099')
+        _ = mountSerialPort.read(1)
+        logger.debug(f"Mount response to setting guiding rates: {_}")
 
-    # Set mount guide rate to max value
-    if not mountSerialPort.is_open:
-        mountSerialPort.open()
-    mountSerialPort.write(b':RG9099')
-    _ = mountSerialPort.read(1)
-    logger.debug(f"Mount response to setting guiding rates: {_}")
+        # Confirm guiding rate took effect
+        mountSerialPort.write(b':AG#')
+        out = mountSerialPort.read(5).decode('utf-8')
+        RAGuideRate = float('0.' + out[0:1])  # 0.XX * sidereal, min rate = 0.01, max rate = 0.90
+        DECGuideRate = float('0.' + out[2:3]) # 0.XX * sidereal, min rate = 0.10, max rate = 0.99
+        logger.debug(f"Mount reported guiding rates: {RAGuideRate=}  {DECGuideRate=}")
+        return RAGuideRate, DECGuideRate
 
-    # Confirm guiding rate took effect
-    mountSerialPort.write(b':AG#')
-    out = mountSerialPort.read(5).decode('utf-8')
-    RAGuideRate = float('0.' + out[0:1])  # 0.XX * sidereal, min rate = 0.01, max rate = 0.90
-    DECGuideRate = float('0.' + out[2:3]) # 0.XX * sidereal, min rate = 0.10, max rate = 0.99
-    logger.debug(f"Mount reported guiding rates: {RAGuideRate=}  {DECGuideRate=}")
+    def getCurrentImageFolder():
+        # Find most recent observation directory
+        time.sleep(5) # Let camera module make observation folder
+        dates = []
+        format = "%Y-%m-%d_%H:%M:%S"
+        for fileName in os.listdir(f"{parentPath}/images"):
+            try:
+                dates.append(datetime.strptime(fileName, format))
+            except Exception:
+                pass
 
-    # Find most recent observation directory
-    dates = []
-    format = "%Y-%m-%d_%H:%M:%S"
-    for fileName in os.listdir(f"{parentPath}/images"):
-        try:
-            dates.append(datetime.strptime(fileName, format))
-        except Exception:
-            pass
+        currentImageFolder = datetime.strftime(max(dates), format)
+        logger.debug(f"Found the most recent observation folder: {parentPath}/images/{currentImageFolder}")
 
-    currentImageFolder = datetime.strftime(max(dates), format)
-    logger.debug(f"Found the most recent observation folder: {parentPath}/images/{currentImageFolder}")
-
-    previousRawImages = []
-    camerasObserving = True
-    while camerasObserving:
-
+    def getNewestImages(previousRawImages):
         # Find the most recent image in the most recent observation folder, search for the first image until a timeout period of 5 minutes
         logger.debug("Waiting for new raw images...")
         timeout = time.time() + 60 * 5
@@ -348,7 +361,7 @@ def correctTracking(mountSerialPort, coordinates, astrometryAPI, abortOnFailedSo
             try:
                 rawImage = newRawImages[-1]
                 logger.debug("Found new raw images.")
-                break
+                return rawImage, previousRawImages
             except IndexError:
                 pass
 
@@ -358,13 +371,10 @@ def correctTracking(mountSerialPort, coordinates, astrometryAPI, abortOnFailedSo
 
             time.sleep(1)
 
-
-        start = time.time()
-        logger.info("Correcting tracking by plate solving...")
-
-        # Convert newest .cr2 into a .jpg
-        os.system(f"dcraw -e {rawImage}")
-        logger.debug(f"Converted {rawImage} to .thumb.jpg")
+    def plateSolveWithAPI():
+        '''
+        Wrangles the astrometry API to plate solve the .thumb.jpg. Returns an (RA, DEC) touple
+        '''
 
         logger.debug("Logging into astrometry.net through the API.")
         data = parse.urlencode({'request-json': json.dumps({"apikey": astrometryAPI})}).encode()
@@ -445,13 +455,7 @@ def correctTracking(mountSerialPort, coordinates, astrometryAPI, abortOnFailedSo
                     break
                 elif response["status"] == "failure":
                     logger.warning("Unable to plate solve image.")
-                    if abortOnFailedSolve:
-                        # TODO: Decide and implement one of the following:
-                        #          1. Go to the next target
-                        #          2. Wait X minutes and try again (cloud cover, starlink satelite, whatever)
-                        #          3. Fully turn off the system
-                        pass
-                    return
+                    return False, False
                 elif time.time() > timeout:
                     logger.warning("Plate-solve timeout reached waiting for astronomy.net to plate solve the image.")
                     return
@@ -471,7 +475,7 @@ def correctTracking(mountSerialPort, coordinates, astrometryAPI, abortOnFailedSo
                     DECDecimal = response['dec']
 
                     logger.debug(f"Plate solve coordinates: ra: {RADecimal} dec: {DECDecimal}")
-                    break
+                    return RADecimal, DECDecimal
                 except KeyError as e:
                     pass
 
@@ -482,9 +486,7 @@ def correctTracking(mountSerialPort, coordinates, astrometryAPI, abortOnFailedSo
         else:
             logger.warning("Problem logging into the astrometry.net API! Check your API key and internet connection.")
 
-        end = time.time()
-        logger.debug(f"Time spent calculating correction: {end - start}")
-
+    def executeTrackingCorrection():
         # Perform guiding - aka tracking correction
         RACorrection = RADecimal - coordinates.ra.deg
         DECCorrection = DECDecimal - coordinates.dec.deg
@@ -522,6 +524,8 @@ def correctTracking(mountSerialPort, coordinates, astrometryAPI, abortOnFailedSo
             mountSerialPort.write(bytes(RAcmd))
             logger.debug(f"Sent the RA guide command {RAcmd} to the mount.")
 
+
+
         if DECGuideTime > 100:
             if DECGuideTime > 99999:
                 cmdDECData = str(99999)
@@ -535,6 +539,44 @@ def correctTracking(mountSerialPort, coordinates, astrometryAPI, abortOnFailedSo
 
         logger.info("Succesfully executed necessary tracking corrections.")
         time.sleep(100)
+
+    ### Start of correctTracking() ### 
+    try:
+
+        RAGuideRate, DECGuideRate = setTrackingSettings()
+
+        currentImageFolder = getCurrentImageFolder()
+
+        previousRawImages = []
+        camerasObserving = True
+        while camerasObserving:
+            rawImage, previousRawImages = getNewestImages(previousRawImages)
+
+            start = time.time() # Time how long it takes to get actual coordinates after taking an image for logging and understanding how plate solve time impacts guiding
+            logger.info("Correcting tracking by plate solving...")
+
+            # Convert newest .cr2 into a .jpg
+            os.system(f"dcraw -e {rawImage}")
+            logger.debug(f"Converted {rawImage} to .thumb.jpg")
+
+            RADecimal, DECDecimal = plateSolveWithAPI()
+
+            if RADecimal is not False: # RADecimal == False if plate solving fails
+            
+                logger.debug(f"Time spent calculating correction: {time.time() - start}")
+
+                executeTrackingCorrection()
+            
+            if abortOnFailedSolve and RADecimal == False:
+                # TODO: Decide and implement one of the following:
+                #          1. Go to the next target
+                #          2. Wait X minutes and try again (cloud cover, starlink satelite, whatever)
+                #          3. Fully turn off the system
+                #          4. Remove this feature and just continue to try and plate solve
+                pass
+
+    except Exception as e:
+        logger.error("Error during plate solving:", e)
 
 def main():
 
@@ -577,16 +619,29 @@ def main():
                 logger.debug(f"Result of unpark command: {_}")
 
                 coordinates = SkyCoord(current_target.position['ra'], current_target.position['dec'], unit=(u.hourangle, u.deg))
-                slewToTarget(coordinates, mount_port)
-                sendTargetObjectCommand(current_target, 'take images')
-                os.system(f'python3 {parentPath}/cameras/camera_control.py')
-                logger.info("Started the camera module.")
+                acceptedSlew = slewToTarget(coordinates, mount_port)
 
-                try:
+                if not acceptedSlew:
+                    logger.warning("Mount did not accept slew command. Parking mount, system will try observing next target.")
+                    print("Mount will not slew to target because of altitude or mechanical limits. Aborting observation of this target.")
+                    print("By default, the mounts altitude limit is set to +30 degrees. You can change it using the hand controller.")
+
+                    park(mount_port, UNIT_LOCATION)
+                    sendTargetObjectCommand(current_target, 'parked')
+                    time.sleep(2)
+                    mount_port.close()
+                    logger.debug("Closed the mount's serial port.")
+                    break
+
+                elif acceptedSlew:
+                    current_target = request_mount_command()
+                    sendTargetObjectCommand(current_target, 'parked')
+                    sendTargetObjectCommand(current_target, 'take images')
+                    os.system(f'python3 {parentPath}/cameras/camera_control.py')
+                    logger.info("Started the camera module.")
+
                     guideThread = threading.Thread(target=correctTracking, args=(mount_port, coordinates, ASTROMETRY_API, ABORT_FAILED_SOLVE_ATTEMPT), daemon=True)
                     guideThread.start()
-                except Exception as e:
-                    logger.error("Encountered an error while trying to guide the mount", e)
 
             case 'park':
                 print("Parking the mount.")
