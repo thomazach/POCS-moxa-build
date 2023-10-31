@@ -24,7 +24,7 @@ function MoxaInstall {
 function PiInstall {
     echo "                 -------- Installing Required apt Packages --------"
     sudo apt-get update && sudo apt-get upgrade -y
-    sudo apt-get install curl dcraw=9.27 python3-pip -y
+    sudo apt-get install curl dcraw python3-pip -y
     sudo mv /usr/lib/python3.11/EXTERNALLY-MANAGED /usr/lib/python3.11/EXTERNALLY-MANAGED.old
     echo "                 -------- Installing Required Python pip Packages --------"
     sudo pip install astropy colorlog pyserial
@@ -70,10 +70,10 @@ while true; do
         break
     elif [ "$user_input" == "y" ]; then
         echo "                 -------- Uploading Arduino Script --------"
-        arduino-cli core update-index
-        arduino-cli core install arduino:avr
-        arduino-cli compile -b arduino:avr:uno ~/POCS-moxa-build/arduino/power_board
-        arduino-cli upload -p /dev/ttyACM0 -b ~/POCS-moxa-build/arduino/power_board
+        ~/bin/arduino-cli core update-index
+        ~/bin/arduino-cli core install arduino:avr
+        ~/bin/arduino-cli compile -b arduino:avr:uno ~/POCS-moxa-build/arduino/power_board
+        ~/bin/arduino-cli upload -p /dev/ttyACM0 -b ~/POCS-moxa-build/arduino/power_board
         break
     else
         echo "Invalid input. Please enter 'y' or 'n'."
