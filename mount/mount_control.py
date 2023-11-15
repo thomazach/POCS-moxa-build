@@ -222,7 +222,7 @@ def slewToTarget(coordinates, mountSerialPort=None):
     RA_CentiArcseconds = "0" * NumZeros + RA_string
 
     val = round(coordinates.dec.deg * 60 * 60 * 100)
-    NumZeros = max(0, 8 - len(str(val)))
+    NumZeros = max(0, 8 - len(str(abs(val))))
     if val >= 0:
         DEC_SignedCentiArcseconds = "+" + "0" * NumZeros + str(abs(val))
     else:
