@@ -224,9 +224,9 @@ def slewToTarget(coordinates, mountSerialPort=None):
     val = round(coordinates.dec.deg * 60 * 60 * 100)
     NumZeros = max(0, 8 - len(str(val)))
     if val >= 0:
-        DEC_SignedCentiArcseconds = "+" + "0" * NumZeros + str(val)
+        DEC_SignedCentiArcseconds = "+" + "0" * NumZeros + str(abs(val))
     else:
-        DEC_SignedCentiArcseconds = "-" + "0" * NumZeros + str(val)
+        DEC_SignedCentiArcseconds = "-" + "0" * NumZeros + str(abs(val))
 
     RA_cmd = f':SRA{RA_CentiArcseconds}#'.encode()
     DEC_cmd = f':Sd{DEC_SignedCentiArcseconds}#'.encode()
