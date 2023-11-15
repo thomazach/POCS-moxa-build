@@ -38,22 +38,10 @@ Before beginning your build, you should [explore the official panoptes website](
 ## Compatible Hardware  
 Moxa-POCS only offers "out of the box" functionality for a single build. Currently, it is designed to work with a [CEM40]([https://www.ioptron.com/product-p/3000e.htm](https://www.ioptron.com/product-p/c401a1.htm)) equitorial telescope mount, two [Cannon EOS 100Ds](https://www.canon.com.cy/for_home/product_finder/cameras/digital_slr/eos_100d/), [Arduino Uno Rev3](https://store.arduino.cc/products/arduino-uno-rev3) accompanied by a [power distribution header](https://www.infineon.com/dgdl/Infineon-24V_ProtectedSwitchShield_with_Profet+24V_for_Arduino_UsersManual_10.pdf-UserManual-v01_01-EN.pdf?fileId=5546d46255dd933d0156074933e91fe2), and either a [moxa control computer](https://www.moxa.com/en/products/industrial-computing/arm-based-computers/uc-8100a-me-t-series) or Raspberry Pi. You can find in-depth documentation for this build here(WIP). Moxa-POCS can also support the [iEQ30Pro](https://www.ioptron.com/product-p/3000e.htm) mount, however a package will need to be installed after downloading the baseline software. Using other hardware will likely cause problems, and you will need to develop solutions on your own.
 ## Install
-On Raspberry Pi Unbuntu Server:
+On Raspberry Pi Unbuntu Server, run this command to begin an automatic installation:
 ```
-$ sudo apt-get update
-$ sudo apt-get upgrade
-$ sudo apt-get install dcraw=9.27
-$ sudo apt install python3-pip
-$ sudo mv /usr/lib/python3.11/EXTERNALLY-MANAGED /usr/lib/python3.11/EXTERNALLY-MANAGED.old
-$ sudo pip install astropy   # sudo required otherwise it will try to make a user installation
-$ sudo pip install colorlog
-$ sudo pip install pyserial
-### Choose 2 (stable version) after running the command below ###
-$ wget https://raw.githubusercontent.com/gonzalo/gphoto2-updater/master/gphoto2-updater.sh && wget https://raw.githubusercontent.com/gonzalo/gphoto2-updater/master/.env && chmod +x gphoto2-updater.sh && sudo ./gphoto2-updater.sh
-
-$ git clone https://github.com/thomazach/POCS-moxa-build.git
+cd ~; wget https://raw.githubusercontent.com/thomazach/POCS-moxa-build/develop/install/auto_install.sh; bash ~/auto_install.sh
 ```
-Note that the version of dcraw provided is available in Debian 9 (stretch). The dcraw install step is the only one that hasn't been tested on Ubuntu server.  
 On a Moxa processor running Moxa Industrial Linux 1 (MIL1): (This section is still a work in progress.)
 ```
 sudo nano /etc/network/interfaces.d
