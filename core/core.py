@@ -81,7 +81,7 @@ def getPowerStatus():
     logger.critical("Timeout reached while waiting for power status from arduino. Can't confirm that AC power is on.")
     return False
 
-def getSafetyStatus(weatherResultsPath, unitLocation, simulators):
+def getSafetyStatus(weatherResultsPath, unitLocation, position=None, simulators=[]):
     '''
     Inputs:
         weatherResultsPath - string
@@ -90,6 +90,9 @@ def getSafetyStatus(weatherResultsPath, unitLocation, simulators):
         unitLocation - astropy.coordinates.EarthLocation object
             Location of the unit as represented by astropy
 
+        position - 
+            Location of target in the sky
+
         simulators - optional list
             List of strings that are keywords to disable certain safety checks. This is designed to aid users in testing.
 
@@ -97,12 +100,18 @@ def getSafetyStatus(weatherResultsPath, unitLocation, simulators):
         isSafe - bool
             Represents wether it is safe to try to observe. True if safe, False if dangerous
     '''
+    if position == None:
+        simulators.append('horizon')
+        simulators.append('moon')
+    
     logger.info("Checking safety conditions...")
     logger.info(f"Overiding safety checks for the following simulators: {simulators}")
 
     safetyFunctionInfo = [{'funcHandle': getWeatherStatus, 'args': [weatherResultsPath], 'simulatorName': 'weather'},
-                             {'funcHandle': astronomicalNight, 'args': [unitLocation], 'simulatorName': 'night'},
-                             {'funcHandle': getPowerStatus, 'args': [], 'simulatorName': 'power'}]
+                            {'funcHandle': astronomicalNight, 'args': [unitLocation], 'simulatorName': 'night'},
+                            {'funcHandle': getPowerStatus, 'args': [], 'simulatorName': 'power'},
+                            {'funcHandle': aboveHorizon, 'args': [SkyCoord(position, unit=(u.hourangle, u.deg)), unitLocation], 'simulatorName': 'horizon'},
+                            {'funcHandle': moonObstruction, 'args': [SkyCoord(position, unit=(u.hourangle, u.deg))], 'simulatorName': 'moon'}]
     
     safetyFunctions = []
     for info in safetyFunctionInfo:
@@ -171,17 +180,6 @@ def moonObstruction(targetSkyCoord):
     
     return True
 
-def checkTargetAvailability(position, unitLocation):
-    checkFunctions = [(astronomicalNight, [unitLocation]),
-                    (aboveHorizon, [SkyCoord(position, unit=(u.hourangle, u.deg)), unitLocation]),
-                    (moonObstruction, [SkyCoord(position, unit=(u.hourangle, u.deg))])
-    ]
-
-    for func, args in checkFunctions:
-        if not func(*args):
-            return False
-    return True
-
 def park():
     '''
     Park the mount and wait to recieve the 'parked' status to confirm the mount is done moving.
@@ -230,7 +228,7 @@ def POCSMainLoop(UNIT_LOCATION, TARGETS_FILE_PATH, settings):
 
     while doRun:
 
-        isSafe = getSafetyStatus(WEATHER_RESULTS_TXT, UNIT_LOCATION, settings['SIMULATORS'])
+        isSafe = getSafetyStatus(WEATHER_RESULTS_TXT, UNIT_LOCATION, simulators=settings['SIMULATORS'])
 
         if isSafe:
             logger.info(f"Condition checks passed.")
@@ -242,7 +240,7 @@ def POCSMainLoop(UNIT_LOCATION, TARGETS_FILE_PATH, settings):
                 target = heapq.heappop(target_queue)
                 print(f"{bcolors.OKCYAN}Checking observation conditions of the current target: {target.name}.{bcolors.ENDC}")
                 logger.info(f"Checking observation conditions of the current target: {target.name}")
-                if not checkTargetAvailability(target.position['ra'] + target.position['dec'], UNIT_LOCATION):
+                if not getSafetyStatus(WEATHER_RESULTS_TXT, UNIT_LOCATION, position=target.position['ra'] + target.position['dec'], simulators=settings['SIMULATORS']):
                     print(bcolors.OKCYAN + "Moon or other conditions not desirable. Moving to next target in schedule file." + bcolors.ENDC)
                     logger.info("Moon or other conditions not desirable. Moving to next target in schedule file.")
                     continue
@@ -262,7 +260,7 @@ def POCSMainLoop(UNIT_LOCATION, TARGETS_FILE_PATH, settings):
                         target = pickle.load(f)
                     logger.debug(f"Read current_target.pickle and recieved this target: {target}")
 
-                    isSafe = getSafetyStatus(WEATHER_RESULTS_TXT,  UNIT_LOCATION, settings['SIMULATORS'])
+                    isSafe = getSafetyStatus(WEATHER_RESULTS_TXT,  UNIT_LOCATION, simulators=settings['SIMULATORS'])
                     if not isSafe:
 
                         park()
