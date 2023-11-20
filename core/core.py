@@ -81,7 +81,7 @@ def getPowerStatus():
     logger.critical("Timeout reached while waiting for power status from arduino. Can't confirm that AC power is on.")
     return False
 
-def getSafetyStatus(weatherResultsPath, unitLocation, position=None, simulators=[]):
+def getSafetyStatus(weatherResultsPath, unitLocation, position=False, simulators=[]):
     '''
     Inputs:
         weatherResultsPath - string
@@ -90,7 +90,7 @@ def getSafetyStatus(weatherResultsPath, unitLocation, position=None, simulators=
         unitLocation - astropy.coordinates.EarthLocation object
             Location of the unit as represented by astropy
 
-        position - 
+        position - optional RA DEC string
             Location of target in the sky
 
         simulators - optional list
@@ -100,9 +100,11 @@ def getSafetyStatus(weatherResultsPath, unitLocation, position=None, simulators=
         isSafe - bool
             Represents wether it is safe to try to observe. True if safe, False if dangerous
     '''
-    if position == None:
+    if position == False:
         simulators.append('horizon')
         simulators.append('moon')
+    else:
+        position = SkyCoord(position, unit=(u.hourangle, u.deg))
     
     logger.info("Checking safety conditions...")
     logger.info(f"Overiding safety checks for the following simulators: {simulators}")
@@ -110,8 +112,8 @@ def getSafetyStatus(weatherResultsPath, unitLocation, position=None, simulators=
     safetyFunctionInfo = [{'funcHandle': getWeatherStatus, 'args': [weatherResultsPath], 'simulatorName': 'weather'},
                             {'funcHandle': astronomicalNight, 'args': [unitLocation], 'simulatorName': 'night'},
                             {'funcHandle': getPowerStatus, 'args': [], 'simulatorName': 'power'},
-                            {'funcHandle': aboveHorizon, 'args': [SkyCoord(position, unit=(u.hourangle, u.deg)), unitLocation], 'simulatorName': 'horizon'},
-                            {'funcHandle': moonObstruction, 'args': [SkyCoord(position, unit=(u.hourangle, u.deg))], 'simulatorName': 'moon'}]
+                            {'funcHandle': aboveHorizon, 'args': [position, unitLocation], 'simulatorName': 'horizon'},
+                            {'funcHandle': moonObstruction, 'args': [position], 'simulatorName': 'moon'}]
     
     safetyFunctions = []
     for info in safetyFunctionInfo:
