@@ -99,7 +99,7 @@ def getCurrentSkyCoord(port):
     port.write(b':GEP#')
     rawPosition = port.read(18).decode('utf-8')
     rawDEC, rawRA = float(rawPosition[0:9]), float(rawPosition[9:17]) #(0.01 arcseconds, milliseconds)
-    RADecimalDegree = Angle(str(rawRA * 1/100 + 's')).deg
+    RADecimalDegree = Angle(str(rawRA * 1/100) + 's').deg
     DECDecimalDegree = Angle(str(rawDEC * 1/100) + 's').deg
     
     logger.debug(f"{RADecimalDegree=}     {DECDecimalDegree=}")
