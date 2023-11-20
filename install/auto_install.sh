@@ -73,7 +73,7 @@ while true; do
         ~/bin/arduino-cli core update-index
         ~/bin/arduino-cli core install arduino:avr
         ~/bin/arduino-cli compile -b arduino:avr:uno ~/POCS-moxa-build/arduino/power_board
-        ~/bin/arduino-cli upload -p /dev/ttyACM0 -b ~/POCS-moxa-build/arduino/power_board
+        ~/bin/arduino-cli upload -p /dev/ttyACM0 -b arduino:avr:uno ~/POCS-moxa-build/arduino/power_board
         break
     else
         echo "Invalid input. Please enter 'y' or 'n'."
