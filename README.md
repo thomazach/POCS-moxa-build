@@ -80,7 +80,7 @@ As an optional step that will improve your unit's performance, you can enable pl
 1. Visiting [nova.astrometry.net](nova.astrometry.net) and logging in/creating an account
 2. Going to your Dashboard --> My Profile
 3. Finding your API key (the green text in the "Account Info" box) 
-4. Using the `settings --plate_solve <API key from step 3>` command to enter your API key
+4. Using the `settings --plate_solve <API key from step 3>` command to enter your API key.  
 As an added bonus, you can also use astrometry.net's Dashboard --> My Images tab to see some of the images your unit is taking in real time.  
 ## Operation
 The unit is controlled through a custom shell that can be launched from a terminal with `python3 ~/POCS-moxa-build/panoptes_CLI.py`. Below is a table of available shell commands. Please note that the shell's built-in help documentation includes shortcuts not listed here, and may be in a more accessible format.
