@@ -101,13 +101,13 @@ def getSafetyStatus(weatherResultsPath, unitLocation, position=False, simulators
             Represents wether it is safe to try to observe. True if safe, False if dangerous
     '''
     if position == False:
-        simulators.append('horizon')
-        simulators.append('moon')
+        SmartSimulators = simulators + ['horizon', 'moon']
     else:
         position = SkyCoord(position, unit=(u.hourangle, u.deg))
+        SmartSimulators = simulators
     
     logger.info("Checking safety conditions...")
-    logger.info(f"Overiding safety checks for the following simulators: {simulators}")
+    logger.info(f"Overiding safety checks for the following simulators: {SmartSimulators}")
 
     safetyFunctionInfo = [{'funcHandle': getWeatherStatus, 'args': [weatherResultsPath], 'simulatorName': 'weather'},
                             {'funcHandle': astronomicalNight, 'args': [unitLocation], 'simulatorName': 'night'},
@@ -117,7 +117,7 @@ def getSafetyStatus(weatherResultsPath, unitLocation, position=False, simulators
     
     safetyFunctions = []
     for info in safetyFunctionInfo:
-        if info['simulatorName'] in simulators:
+        if info['simulatorName'] in SmartSimulators:
             continue
 
         safetyFunctions.append((info['funcHandle'], info['args'])) 
@@ -151,7 +151,7 @@ def aboveHorizon(targetSkyCoord, unitLocation):
     
     if float(targetAltAz.alt.deg) < 30:
         print(bcolors.OKCYAN + "Target is below the horizon." + bcolors.ENDC)
-        logger.info("Target is below the horizon.")
+        logger.info(f"Target is below the horizon. Current altitude: {targetAltAz.alt.deg}")
         return False
     return True
 
@@ -215,7 +215,7 @@ def park():
 
         time.sleep(1)
     
-    logger.critical("Mount failed to parked before 3 minute timeout.")
+    logger.critical("Mount failed to park before 3 minute timeout.")
     return False
 
 def POCSMainLoop(UNIT_LOCATION, TARGETS_FILE_PATH, settings):
@@ -242,9 +242,8 @@ def POCSMainLoop(UNIT_LOCATION, TARGETS_FILE_PATH, settings):
                 target = heapq.heappop(target_queue)
                 print(f"{bcolors.OKCYAN}Checking observation conditions of the current target: {target.name}.{bcolors.ENDC}")
                 logger.info(f"Checking observation conditions of the current target: {target.name}")
-                if not getSafetyStatus(WEATHER_RESULTS_TXT, UNIT_LOCATION, position=target.position['ra'] + target.position['dec'], simulators=settings['SIMULATORS']):
-                    print(bcolors.OKCYAN + "Moon or other conditions not desirable. Moving to next target in schedule file." + bcolors.ENDC)
-                    logger.info("Moon or other conditions not desirable. Moving to next target in schedule file.")
+                if not getSafetyStatus(WEATHER_RESULTS_TXT, UNIT_LOCATION, position=target.position['ra'] + target.position['dec'], simulators=settings['SIMULATORS'] + ['power', 'weather']):
+                    print(bcolors.OKCYAN + "Observation conditions are not desirable. Moving to next target in schedule file." + bcolors.ENDC)
                     continue
                 # tell mount controller target
                 with open(f"{PARENT_DIRECTORY}/pickle/current_target.pickle", "wb") as pickleFile:
@@ -261,10 +260,9 @@ def POCSMainLoop(UNIT_LOCATION, TARGETS_FILE_PATH, settings):
                     with open(f"{PARENT_DIRECTORY}/pickle/current_target.pickle", "rb") as f:
                         target = pickle.load(f)
                     logger.debug(f"Read current_target.pickle and recieved this target: {target}")
-
                     isSafe = getSafetyStatus(WEATHER_RESULTS_TXT,  UNIT_LOCATION, simulators=settings['SIMULATORS'])
                     if not isSafe:
-
+                        logger.warning("Safety condition check failed, parking the mount.")
                         park()
                         
                         target_queue = []
