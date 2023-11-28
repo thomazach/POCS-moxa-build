@@ -634,8 +634,6 @@ def main():
                     break
 
                 elif acceptedSlew:
-                    current_target = request_mount_command()
-                    sendTargetObjectCommand(current_target, 'parked')
                     sendTargetObjectCommand(current_target, 'take images')
                     os.system(f'python3 {parentPath}/cameras/camera_control.py')
                     logger.info("Started the camera module.")
