@@ -103,6 +103,11 @@ def main(args):
                         if target.cmd == 'parked':
                             print(bcolors.OKGREEN + "Done." + bcolors.ENDC)
                             on = False
+
+                            # Turn off testing mode
+                            systemInfo['testing_mode'] = True
+                            with open(f"{PARENT_DIRECTORY}/pickle/system_info.pickle", "wb") as f:
+                                pickle.dump(systemInfo, f)
                     
                         time.sleep(10)
                 time.sleep(10)
