@@ -48,7 +48,7 @@ def convertAltAztoRaDec(location, az, alt):
 # Mount hardware functions
 def get_mount_port():
     '''
-    Returns a serial.Serial object who'rawStatusResponse port information corresponds to the mount.
+    Returns a serial.Serial object who's port information corresponds to the mount.
 
     Works by sending a mount initilization command to each serial port of the form /dev/ttyUSB*, and listens for the expected response.
     '''
@@ -107,16 +107,16 @@ def getCurrentSkyCoord(port):
     '''
     Returns a SkyCoord object with the coords returned by the mount.
 
-    The mount has its own RA DEC coordinate system that'rawStatusResponse defined using the servo motors,
+    The mount has its own RA DEC coordinate system that's defined using the servo motors,
     this system can be changed with rs-232 commands, and may not reflect the actual coordinates
     at both a large(completely wrong coordinate system) and small scale(servo motor error). 
     '''
     logger.debug("Getting the current RA/DEC coordinates of the mount.")
     port.write(b':GEP#')
-    rawPosition = port.read(18).decode('utf-8')
-    rawDEC, rawRA = float(rawPosition[0:9]), float(rawPosition[9:17]) #(0.01 arcseconds, milliseconds)
-    RADecimalDegree = Angle(str(rawRA * 1/100) + 'rawStatusResponse').deg
-    DECDecimalDegree = Angle(str(rawDEC * 1/100) + 'rawStatusResponse').deg
+    rawPosition = port.read(21).decode('utf-8')
+    rawDEC, rawRA = float(rawPosition[0:9]), float(rawPosition[9:17]) #(0.01 arcseconds, arcseconds)
+    RADecimalDegree = Angle(str(rawRA * 1/100) + 's').deg
+    DECDecimalDegree = Angle(str(rawDEC * 1/100) + 's').deg
     
     logger.debug(f"{RADecimalDegree=}     {DECDecimalDegree=}")
     
@@ -125,7 +125,7 @@ def getCurrentSkyCoord(port):
 def getMountStatus(port):
     '''
     Input:
-        port - serial.Serial object corresponding to the mount'rawStatusResponse port with proper configuration settings
+        port - serial.Serial object corresponding to the mount's port with proper configuration settings
     
     Output:
         mountStatusDict
@@ -555,14 +555,14 @@ def correctTracking(mountSerialPort, coordinates, astrometryAPI, abortOnFailedSo
             session_id = response['session']
             logger.debug(f"Session ID: {session_id}")
 
-            # File uploading, taken from astrometry.net'rawStatusResponse API documentation and github client
+            # File uploading, taken from astrometry.net's API documentation and github client
             f = open(rawImage.replace(".cr2", ".thumb.jpg"), 'rb')
             file_args = (rawImage.replace(".cr2", ".thumb.jpg"), f.read())
 
             boundary_key = ''.join([random.choice('0123456789') for i in range(19)])
-            boundary = '===============%rawStatusResponse==' % boundary_key
+            boundary = '===============%s==' % boundary_key
             headers = {'Content-Type':
-                        'multipart/form-data; boundary="%rawStatusResponse"' % boundary}
+                        'multipart/form-data; boundary="%s"' % boundary}
             
             data_pre = (
                 '--' + boundary + '\n' +
@@ -574,7 +574,7 @@ def correctTracking(mountSerialPort, coordinates, astrometryAPI, abortOnFailedSo
                 '--' + boundary + '\n' +
                 'Content-Type: application/octet-stream\r\n' +
                 'MIME-Version: 1.0\r\n' +
-                'Content-disposition: form-data; name="file"; filename="%rawStatusResponse"' % file_args[0] +
+                'Content-disposition: form-data; name="file"; filename="%s"' % file_args[0] +
                 '\r\n' + '\r\n')
             data_post = (
                 '\n' + '--' + boundary + '--\n')
@@ -798,7 +798,7 @@ def main():
                     sendTargetObjectCommand(current_target, 'parked')
                     time.sleep(2)
                     mount_port.close()
-                    logger.debug("Closed the mount'rawStatusResponse serial port.")
+                    logger.debug("Closed the mount's serial port.")
                     break
 
                 elif acceptedSlew:
@@ -816,7 +816,7 @@ def main():
                 sendTargetObjectCommand(current_target, 'parked')
                 time.sleep(2)
                 mount_port.close()
-                logger.debug("Closed the mount'rawStatusResponse serial port.")
+                logger.debug("Closed the mount's serial port.")
                 break
                 
             case 'emergency park':
@@ -834,7 +834,7 @@ def main():
                 park(mount_port, UNIT_LOCATION)
                 sendTargetObjectCommand(current_target, 'parked')
                 mount_port.close()
-                logger.debug("Closed the mount'rawStatusResponse serial port.")
+                logger.debug("Closed the mount's serial port.")
                 break
             
             case _:
