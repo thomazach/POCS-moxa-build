@@ -229,7 +229,50 @@ def getMountStatus(port):
 
     return mountStatusDict
 
+def waitForMountState(port, waitKey, waitState, timeout=120):
+    '''
+    Inputs:
+        port:
+            serial.Serial object corresponding to the mount'rawStatusResponse port with proper configuration settings
 
+        waitKey:
+            A dictionary key of the mountStatusDict returned by the getMountStatus function.
+
+        waitState:
+            The human readable state designation of the mount. These should correspond to the human readable output
+            of getMountStatus
+
+        timeout:
+            Optional timeout in seconds to wait before giving up
+    
+    Output:
+        True if state is the desired state, false if the timeout was reached before the mount switched to the requested state
+
+    Notes:
+        DO NOT THREAD. If mount response is garbled or the wrong length, mount control is lost. Threading this will likely cause 
+        other functions read() to grab the wrong data, meaning the functions recieve bad serial responses. 
+            
+    '''
+
+    logger.info(f"Waiting for mount to change its {waitKey} state to {waitState}...")
+    waitUntil = time.time() + timeout
+    while waitUntil > time.time():
+        logger.info("Checking mount states...")
+        mountStates = getMountStatus(port)
+
+        try:
+
+            if mountStates[waitKey] == waitState:
+                logger.info(f"Mount has changed its {waitKey} state to {waitState}.")
+                return True
+    
+        except KeyError as e:
+            logger.critical("Bad key used in waitForMountStatus call!")
+            print(e)
+
+        time.sleep(3)
+    
+    return False
 
 
 def park_slewToTarget(coordinates, mountSerialPort):
