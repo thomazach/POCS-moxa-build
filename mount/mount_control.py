@@ -20,7 +20,7 @@ from logger.astro_logger import astroLogger
 
 parentPath = os.path.dirname(__file__).replace('/mount', '')
 
-
+# Pickle object functions (send/recieve)
 def request_mount_command():
     ### Recieve a command from moxa-pocs/core by loading the pickle instance it has provided in the pickle directory
     with open(f"{parentPath}/pickle/current_target.pickle", "rb") as f:
@@ -37,6 +37,7 @@ def sendTargetObjectCommand(current_target_object, cmd):
         pickle.dump(current_target_object, f)
     logger.debug(f"Sent the following command to current_target.pickle: {cmd}")
 
+# Astronomy calculation functions
 def convertAltAztoRaDec(location, az, alt):
     # Az/Alt - astropy input strings in degrees (ex. "90d")
     observationTime = Time(datetime.now(timezone.utc))
@@ -44,7 +45,13 @@ def convertAltAztoRaDec(location, az, alt):
 
     return SkyCoord(ParkPosLocal).transform_to('icrs')
 
+# Mount hardware functions
 def get_mount_port():
+    '''
+    Returns a serial.Serial object who'rawStatusResponse port information corresponds to the mount.
+
+    Works by sending a mount initilization command to each serial port of the form /dev/ttyUSB*, and listens for the expected response.
+    '''
 
     logger.debug("Sending initialization serial handshake to all ttyUSB* ports.")
 
@@ -66,6 +73,9 @@ def get_mount_port():
     raise Exception("Failed to find mount. Possibly bad serial communication. Required mount for this software is the CEM40 from iOptron.")
 
 def connect_to_mount():
+    '''
+    Sets up initial settings for the mount.
+    '''
 
     logger.info("Trying to connect to the mount.")
 
@@ -91,20 +101,136 @@ def connect_to_mount():
     
     if mountSerialPort != None:
         logger.info("Connected to mount.")
-    return mountSerialPort
+        return mountSerialPort
 
 def getCurrentSkyCoord(port):
-    ### Returns a SkyCoord object of whatever the mount thinks it's currently pointing at (polar alignment required) ###
+    '''
+    Returns a SkyCoord object with the coords returned by the mount.
+
+    The mount has its own RA DEC coordinate system that'rawStatusResponse defined using the servo motors,
+    this system can be changed with rs-232 commands, and may not reflect the actual coordinates
+    at both a large(completely wrong coordinate system) and small scale(servo motor error). 
+    '''
     logger.debug("Getting the current RA/DEC coordinates of the mount.")
     port.write(b':GEP#')
     rawPosition = port.read(18).decode('utf-8')
     rawDEC, rawRA = float(rawPosition[0:9]), float(rawPosition[9:17]) #(0.01 arcseconds, milliseconds)
-    RADecimalDegree = Angle(str(rawRA * 1/100) + 's').deg
-    DECDecimalDegree = Angle(str(rawDEC * 1/100) + 's').deg
+    RADecimalDegree = Angle(str(rawRA * 1/100) + 'rawStatusResponse').deg
+    DECDecimalDegree = Angle(str(rawDEC * 1/100) + 'rawStatusResponse').deg
     
     logger.debug(f"{RADecimalDegree=}     {DECDecimalDegree=}")
     
     return SkyCoord(RADecimalDegree, DECDecimalDegree, unit=u.deg)
+
+def getMountStatus(port):
+    '''
+    Input:
+        port - serial.Serial object corresponding to the mount'rawStatusResponse port with proper configuration settings
+    
+    Output:
+        mountStatusDict
+            Dictionary containing all parsed infromation. Values are human readable.
+    '''
+    if not port.is_open:
+        port.open()
+    
+    # Interface with hardware to get the raw string response
+    logger.debug("Getting mount status.")
+    port.write(b':GLS')
+    rawStatusResponse = port.read(24)
+    logger.debug(f"Recieved raw mount status: {rawStatusResponse}")
+
+    # Parse raw string to dictionary
+    mountLongitude = int(rawStatusResponse[0:9])/3600
+    mountLatitude = int(rawStatusResponse[9:17])/3600 - 90
+
+    gps = rawStatusResponse[17]
+    match gps:
+
+        case '0':
+            gps = 'missing'
+        case '1':
+            gps = 'installed'
+        case '2':
+            gps = 'recieved_data'
+
+    mountState = rawStatusResponse[18]
+    match mountState:
+
+        case '0':
+            mountState = "stopped"
+        case '1':
+            mountState = "tracking"
+        case '2':
+            mountState = "slewing"
+        case '3':
+            mountState = "auto_guiding"
+        case '4':
+            mountState = "meridian_flipping"
+        case '5':
+            mountState = "tracking_with_error_correction"
+        case '6':
+            mountState = "parked"
+        case '7':
+            mountState = "home"
+
+    trackingRate = rawStatusResponse[19]
+    match trackingRate:
+        case '0':
+            trackingRate = "sidereal"
+        case '1':
+            trackingRate = "lunar"
+        case '2':
+            trackingRate = "solar"
+        case '3':
+            trackingRate = "king"
+        case '4':
+            trackingRate = "custom"
+
+    buttonRate = rawStatusResponse[20]
+    match buttonRate:
+        case '1':
+            buttonRate = "1x sidereal"
+        case '2':
+            buttonRate = "2x sidereal"
+        case '3':
+            buttonRate = "8x sidereal"
+        case '4':
+            buttonRate = "16x sidereal"
+        case '5':
+            buttonRate = "64x sidereal"
+        case '6':
+            buttonRate = "128x sidereal"
+        case '7':
+            buttonRate = "256x sidereal"
+        case '8':
+            buttonRate = "512x sidereal"
+        case '9':
+            buttonRate = "maximum"
+
+    mountTimeSource = rawStatusResponse[21]
+    match mountTimeSource:
+        case "1":
+            mountTimeSource = "RS-232_OR_ethernet"
+        case "2":
+            mountTimeSource = "hand_controller"
+        case "3":
+            mountTimeSource = "gps"
+
+    mountHemisphere = rawStatusResponse[22]
+    match mountHemisphere:
+        case "0":
+            mountHemisphere = "southern"
+        case "1":
+            mountHemisphere = "northern"
+
+    mountStatusDict = {'mount_longitude': mountLongitude, 'mount_latitude': mountLatitude, 'gps_state': gps, 'mount_state': mountState, 'tracking_rate': trackingRate, 'button_rate': buttonRate, 'mount_time_source': mountTimeSource, 'mount_hemisphere': mountHemisphere}
+    logger.debug(f"Parsed raw mount status into readable dictionary: {mountStatusDict}")
+
+    return mountStatusDict
+
+
+
 
 def park_slewToTarget(coordinates, mountSerialPort):
     '''
@@ -387,14 +513,14 @@ def correctTracking(mountSerialPort, coordinates, astrometryAPI, abortOnFailedSo
             session_id = response['session']
             logger.debug(f"Session ID: {session_id}")
 
-            # File uploading, taken from astrometry.net's API documentation and github client
+            # File uploading, taken from astrometry.net'rawStatusResponse API documentation and github client
             f = open(rawImage.replace(".cr2", ".thumb.jpg"), 'rb')
             file_args = (rawImage.replace(".cr2", ".thumb.jpg"), f.read())
 
             boundary_key = ''.join([random.choice('0123456789') for i in range(19)])
-            boundary = '===============%s==' % boundary_key
+            boundary = '===============%rawStatusResponse==' % boundary_key
             headers = {'Content-Type':
-                        'multipart/form-data; boundary="%s"' % boundary}
+                        'multipart/form-data; boundary="%rawStatusResponse"' % boundary}
             
             data_pre = (
                 '--' + boundary + '\n' +
@@ -406,7 +532,7 @@ def correctTracking(mountSerialPort, coordinates, astrometryAPI, abortOnFailedSo
                 '--' + boundary + '\n' +
                 'Content-Type: application/octet-stream\r\n' +
                 'MIME-Version: 1.0\r\n' +
-                'Content-disposition: form-data; name="file"; filename="%s"' % file_args[0] +
+                'Content-disposition: form-data; name="file"; filename="%rawStatusResponse"' % file_args[0] +
                 '\r\n' + '\r\n')
             data_post = (
                 '\n' + '--' + boundary + '--\n')
@@ -630,7 +756,7 @@ def main():
                     sendTargetObjectCommand(current_target, 'parked')
                     time.sleep(2)
                     mount_port.close()
-                    logger.debug("Closed the mount's serial port.")
+                    logger.debug("Closed the mount'rawStatusResponse serial port.")
                     break
 
                 elif acceptedSlew:
@@ -648,7 +774,7 @@ def main():
                 sendTargetObjectCommand(current_target, 'parked')
                 time.sleep(2)
                 mount_port.close()
-                logger.debug("Closed the mount's serial port.")
+                logger.debug("Closed the mount'rawStatusResponse serial port.")
                 break
                 
             case 'emergency park':
@@ -666,7 +792,7 @@ def main():
                 park(mount_port, UNIT_LOCATION)
                 sendTargetObjectCommand(current_target, 'parked')
                 mount_port.close()
-                logger.debug("Closed the mount's serial port.")
+                logger.debug("Closed the mount'rawStatusResponse serial port.")
                 break
             
             case _:
