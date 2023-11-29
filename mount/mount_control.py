@@ -232,17 +232,18 @@ def getMountStatus(port):
 def waitForMountState(port, waitKey, waitState, timeout=120):
     '''
     Inputs:
-        port:
-            serial.Serial object corresponding to the mount'rawStatusResponse port with proper configuration settings
+        port: serial.Serial object
+            Values correspond to the mount's port with proper configuration settings
 
-        waitKey:
-            A dictionary key of the mountStatusDict returned by the getMountStatus function.
+        waitKey: String
+            A dictionary key of the mountStatusDict returned by the getMountStatus function. A list of valid keys is below:
+            'mount_longitude', 'mount_latitude', 'gps_state', 'mount_state', 'tracking_rate', 'button_rate', 'mount_time_source', 'mount_hemisphere'
 
-        waitState:
+        waitState: String
             The human readable state designation of the mount. These should correspond to the human readable output
             of getMountStatus
 
-        timeout:
+        timeout: int
             Optional timeout in seconds to wait before giving up
     
     Output:
@@ -274,7 +275,6 @@ def waitForMountState(port, waitKey, waitState, timeout=120):
     
     return False
 
-
 def park_slewToTarget(coordinates, mountSerialPort):
     '''
         Slew to a target. This is very inacurate, it uses the slewing rate to figure out how long it should slew for.
@@ -294,7 +294,7 @@ def park_slewToTarget(coordinates, mountSerialPort):
     _ = mountSerialPort.read()
     logger.debug(f"Park slew: Response to go home request: {_}")
 
-    time.sleep(20)
+    waitForMountState(mountSerialPort, 'mount_state', 'home')
 
     if not mountSerialPort.is_open:
         mountSerialPort.open()
@@ -383,7 +383,7 @@ def slewToTarget(coordinates, mountSerialPort=None):
     logger.debug(f"Result of go to home request: {_}")
     logger.info("Waiting for mount to reach the home position.")
 
-    time.sleep(20)
+    waitForMountState(mountSerialPort, 'mount_state', 'home')
 
     # Format desired coordinates into serial commands
     RA_string = str(round(coordinates.ra.deg * 60 * 60 * 100))
@@ -414,13 +414,12 @@ def slewToTarget(coordinates, mountSerialPort=None):
     _ = mountSerialPort.read()
     logger.info("Slewing to target.")
     logger.debug(f"Result of sending the slew command: {_}")
-    time.sleep(30)
 
-    if _ == b"0":
+    if _ == b"0": # If slewing rejected
         return False
 
-    elif _ == b"1":
-        time.sleep(30)
+    elif _ == b"1": # If slewing accepted
+        waitForMountState(mountSerialPort, 'mount_state', 'tracking')
         return True
 
 def park(mountSerialPort, location):
