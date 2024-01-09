@@ -79,8 +79,8 @@ def serialize_commands(readable_command: str):
             return f'<3>'.encode("utf-8")
         
         case "get_power_status":
-            logger.debug(f"Arduino serial command: {f'<4>.'.encode('utf-8')}")
-            return f'<4>.'.encode('utf-8')
+            logger.debug(f"Arduino serial command: {f'<4>'.encode('utf-8')}")
+            return f'<4>'.encode('utf-8')
 
 def listen(port):
     # Function listens for a response from the arduino and returns the requested data or the completion character
@@ -134,18 +134,19 @@ def main():
                 logger.info(f"Turning off the arduino service.")
                 commandDict['execute'] = False
                 commandDict['monitoring_power'] = False
+                commandDict['response'] = "waiting for response"
                 with open(pickleFilePath, "wb") as f:
                     pickle.dump(commandDict, f)
                 On = False
                 continue
-
+            
             if commandDict['execute'] == True:
                 logger.info(f"Attempting to execute arduino command: {commandDict['cmd']}")
                 arduinoReadyCommand = serialize_commands(commandDict['cmd'])
                 arduinoPort.write(arduinoReadyCommand)
                 commandDict['response'] = listen(arduinoPort)
-
-            if commandDict['response'] != "waiting for response":
+            
+            if (commandDict['response'] != "waiting for response") and (commandDict['execute'] == True):
                 commandDict['execute'] = False
                 with open(pickleFilePath, "wb") as f:
                     pickle.dump(commandDict, f)

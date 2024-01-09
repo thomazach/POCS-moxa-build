@@ -20,6 +20,10 @@ def main(args):
             elif cmdDict['execute'] == True:
                 print(bcolors.FAIL +"=ERROR= Did not recieve response from arduino before timeout" + bcolors.ENDC)
 
+    cmd = read()
+    cmd['execute'] = True
+    cmd['response'] = "waiting for response"
+
     if args.listen:
         try:
             os.system(f"python3 {parentDir}/arduino/arduino.py")
@@ -27,10 +31,6 @@ def main(args):
             print(bcolors.FAIL + "=ERROR=", error)
             print(bcolors.ENDC, end='')
         return
-
-    cmd = read()
-    cmd['execute'] = True
-    cmd['response'] = "waiting for response"
 
     if args.off:
         cmd['cmd'] = "off"
