@@ -56,9 +56,18 @@ def getPowerStatus():
     POWER_PICKLE_PATH = f"{PARENT_DIRECTORY}/pickle/arduino_cmd.pickle" 
     with open(POWER_PICKLE_PATH, "rb") as f:
         powerInfo = pickle.load(f)
+        logger.debug(f"Read arduino_cmd.pickle and recieved: \n {powerInfo}")
 
     if bool(powerInfo['monitoring_power']) == False:
+        # Prevent arduino from executing the 'off' command after a pickle glitch
+        # Potentially read-write lock problem, code base was originally designed for
+        # a single core moxa processor.
+        powerInfo['execute'] = False
+        with open(POWER_PICKLE_PATH, "wb") as f:
+            pickle.dump(powerInfo, f)
+
         subprocess.Popen(['python3', f'{PARENT_DIRECTORY}/arduino/arduino.py']) # TODO: Change arduino module name to power module along with arduino.py to power.py
+        
         powerInfo['monitoring_power'] = True
         with open(POWER_PICKLE_PATH, "wb") as f:
             pickle.dump(powerInfo, f)
@@ -75,7 +84,7 @@ def getPowerStatus():
         with open(POWER_PICKLE_PATH, 'rb') as f:
             powerInfo = pickle.load(f)
         
-        if powerInfo['response'] != 'waiting for response':
+        if (powerInfo['response'] != 'waiting for response') and (powerInfo['execute'] == False):
             logger.debug(f"Power safety bool: {repr(powerInfo['response'])}")
             if powerInfo['response'] == '1':
                 return True

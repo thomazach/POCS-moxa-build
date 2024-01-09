@@ -66,7 +66,6 @@ def take_observation(cameraSettings, iso=1):
         cmdArgs = f"gphoto2 --port {camera_path} --set-config iso={iso} --filename {directoryPath}/{observation_dir}/{cam_type}/astro_image_{num_captures - i}.cr2 --set-config-index shutterspeed=0 --wait-event=1s --set-config-index eosremoterelease=2 --wait-event={exposure_time}s --set-config-index eosremoterelease=4 --wait-event-and-download=2s".split(' ')
         subprocess.run(cmdArgs)
         logger.info(f"Taking picture with an exposure time of {exposure_time} with an ISO setting index of {iso}.")
-
         i -= 1
 
 def blank_process():
