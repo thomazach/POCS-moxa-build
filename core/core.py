@@ -62,9 +62,10 @@ def getPowerStatus():
         powerInfo['monitoring_power'] = True
         with open(POWER_PICKLE_PATH, "wb") as f:
             pickle.dump(powerInfo, f)
-        time.sleep(15)
+        time.sleep(2)
     
     powerInfo['cmd'] = 'get_power_status'
+    powerInfo['execute'] = True
     with open(POWER_PICKLE_PATH, 'wb') as f:
         pickle.dump(powerInfo, f)
 
@@ -75,8 +76,10 @@ def getPowerStatus():
             powerInfo = pickle.load(f)
         
         if powerInfo['response'] != 'waiting for response':
-            logger.debug(f"Power safety bool: {powerInfo['response']}")
-            return bool(powerInfo['response'])
+            logger.debug(f"Power safety bool: {repr(powerInfo['response'])}")
+            if powerInfo['response'] == '1':
+                return True
+            return False
 
     logger.critical("Timeout reached while waiting for power status from arduino. Can't confirm that AC power is on.")
     return False
@@ -124,6 +127,7 @@ def getSafetyStatus(weatherResultsPath, unitLocation, position=False, simulators
 
     for func, args in safetyFunctions:
         if not func(*args):
+            logger.debug(f"{func} safety function returned false.")
             return False
     
     logger.info("Safety conditions met.")
@@ -242,7 +246,7 @@ def POCSMainLoop(UNIT_LOCATION, TARGETS_FILE_PATH, settings):
                 target = heapq.heappop(target_queue)
                 print(f"{bcolors.OKCYAN}Checking observation conditions of the current target: {target.name}.{bcolors.ENDC}")
                 logger.info(f"Checking observation conditions of the current target: {target.name}")
-                if not getSafetyStatus(WEATHER_RESULTS_TXT, UNIT_LOCATION, position=target.position['ra'] + target.position['dec'], simulators=settings['SIMULATORS'] + ['power', 'weather']):
+                if not getSafetyStatus(WEATHER_RESULTS_TXT, UNIT_LOCATION, position=target.position['ra'] + " " + target.position['dec'], simulators=settings['SIMULATORS'] + ['power', 'weather']):
                     print(bcolors.OKCYAN + "Observation conditions are not desirable. Moving to next target in schedule file." + bcolors.ENDC)
                     continue
                 # tell mount controller target
